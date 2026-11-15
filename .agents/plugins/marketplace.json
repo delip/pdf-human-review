@@ -1,7 +1,7 @@
 {
-  "name": "pdf-human-review-dev",
+  "name": "pdf-human-review",
   "interface": {
-    "displayName": "PDF Human Review Dev"
+    "displayName": "PDF Human Review"
   },
   "plugins": [
     {

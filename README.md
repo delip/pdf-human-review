@@ -67,9 +67,11 @@ Copy the `skills/pdf-human-review/` folder into the agent's skills location.
 
 ## Updating
 
-These steps are for Claude Code. A new release reaches you only when its version number changes.
+Only the Claude Code steps have been tested. The others follow each agent's documentation.
 
-To update by hand:
+### Claude Code
+
+A new release reaches you only when its version number changes. To update by hand:
 
 ```bash
 claude plugin update pdf-human-review@pdf-human-review
@@ -82,6 +84,36 @@ To get new releases automatically, turn on auto-update for this marketplace once
 3. Choose **Enable auto-update**.
 
 Claude Code then checks for a new release shortly after each session starts. A session that is already running keeps the version it loaded, and the next session uses the new one.
+
+### Codex
+
+Refresh the marketplace, then restart Codex:
+
+```bash
+codex plugin marketplace upgrade pdf-human-review
+```
+
+Codex's documentation does not say whether this also updates a plugin that is already installed. If the old version is still in use afterwards, reinstall the plugin from the plugin list.
+
+### Antigravity
+
+Run the install command again:
+
+```bash
+agy plugin install https://github.com/delip/pdf-human-review
+```
+
+### Cursor
+
+Pull the latest changes into the clone, then restart Cursor or run **Developer: Reload Window**:
+
+```bash
+git -C ~/.cursor/plugins/local/pdf-human-review pull
+```
+
+### Any other agent
+
+Copy the `skills/pdf-human-review/` folder into the agent's skills location again, replacing the old copy.
 
 ## Use
 
