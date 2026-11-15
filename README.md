@@ -19,7 +19,7 @@ The plugin stops there. Finding the passage in a LaTeX source, editing and recom
 
 ## Install
 
-The skill in `skills/pdf-human-review/` is in the shared agent-skill format, and its scripts are plain Python. Each agent finds it through its own manifest in this repository. The Claude Code and Codex installs have been tested from GitHub. The commands for Antigravity and Cursor follow each agent's documentation and have not been tried.
+The skill in `skills/pdf-human-review/` is in the shared agent-skill format, and its scripts are plain Python. Each agent finds it through its own manifest in this repository. The Claude Code, Codex and Antigravity installs have been tested from GitHub. The Cursor steps follow its documentation and have not been tried.
 
 ### Claude Code
 
@@ -71,7 +71,7 @@ Copy the `skills/pdf-human-review/` folder into the agent's skills location.
 
 ## Updating
 
-The Claude Code steps have been tested. The others follow each agent's documentation.
+The Claude Code steps have been tested, and rerunning the Antigravity install command works. The Codex and Cursor steps follow each agent's documentation.
 
 ### Claude Code
 
