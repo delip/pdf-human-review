@@ -15,27 +15,53 @@ The reviewer's comment on the figure
 
 The plugin stops there. Finding the passage in a LaTeX source, editing and recompiling are left to the calling agent.
 
-## Install (Claude Code)
+## Install
+
+The skill in `skills/pdf-human-review/` is in the shared agent-skill format, and its scripts are plain Python. Each agent finds it through its own manifest in this repository. Only the Claude Code install from a local folder has been tested; the other commands follow each agent's documentation and have not been tried.
+
+### Claude Code
 
 ```bash
-claude plugin marketplace add /path/to/pdf-human-review
+claude plugin marketplace add delip/pdf-human-review
 ```
 
 ```bash
 claude plugin install pdf-human-review@pdf-human-review
 ```
 
-## Other agents
+To install from a local checkout instead, for example while developing, give the first command the folder's path: `claude plugin marketplace add /path/to/pdf-human-review`.
 
-The skill in `skills/pdf-human-review/` is in the shared agent-skill format, and its scripts are plain Python. Each agent finds it through its own manifest:
+### Codex
 
-| Agent | Manifest |
-|---|---|
-| Claude Code, Cowork | `.claude-plugin/plugin.json` |
-| Codex | `.codex-plugin/plugin.json`, with a local marketplace in `.agents/plugins/marketplace.json` |
-| Antigravity | `.antigravity-plugin/plugin.json` (install with `agy plugin install <repository URL or path>`) |
+Add this repository as a plugin marketplace. Codex reads `.agents/plugins/marketplace.json` from it.
 
-Only the Claude Code install has been tested. The Codex and Antigravity manifests follow the layout other multi-agent plugins use and have not been tried on those agents. An agent with no plugin system can still use the skill if the `skills/pdf-human-review/` folder is copied into its skills location.
+```bash
+codex plugin marketplace add delip/pdf-human-review
+```
+
+Then install PDF Human Review from the plugin list: run `/plugins` in the Codex CLI, or open Plugins in the Codex app.
+
+### Antigravity
+
+```bash
+agy plugin install https://github.com/delip/pdf-human-review
+```
+
+Run the same command again to update.
+
+### Cursor
+
+Cursor has no command for installing a plugin straight from GitHub, so clone the repository into its local plugins folder:
+
+```bash
+git clone https://github.com/delip/pdf-human-review ~/.cursor/plugins/local/pdf-human-review
+```
+
+Then restart Cursor, or run **Developer: Reload Window**, and check that the skill appears under Customize. Cursor skips symlinks that point outside that folder, so clone or copy the repository there; do not link to a checkout elsewhere.
+
+### Any other agent
+
+Copy the `skills/pdf-human-review/` folder into the agent's skills location.
 
 ## Use
 
@@ -65,8 +91,9 @@ Nothing is written into your project. Working files for a review go in a folder 
 
 ## Development
 
-The version number lives in three files, which need changing together on each release:
+The version number lives in four files, which need changing together on each release:
 
 - `.claude-plugin/plugin.json`
 - `.codex-plugin/plugin.json`
 - `.antigravity-plugin/plugin.json`
+- `.cursor-plugin/plugin.json`
