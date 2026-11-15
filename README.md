@@ -19,7 +19,7 @@ The plugin stops there. Finding the passage in a LaTeX source, editing and recom
 
 ## Install
 
-The skill in `skills/pdf-human-review/` is in the shared agent-skill format, and its scripts are plain Python. Each agent finds it through its own manifest in this repository. The Claude Code install has been tested, from GitHub and from a local folder. The commands for the other agents follow each agent's documentation and have not been tried.
+The skill in `skills/pdf-human-review/` is in the shared agent-skill format, and its scripts are plain Python. Each agent finds it through its own manifest in this repository. The Claude Code and Codex installs have been tested from GitHub. The commands for Antigravity and Cursor follow each agent's documentation and have not been tried.
 
 ### Claude Code
 
@@ -41,7 +41,11 @@ Add this repository as a plugin marketplace. Codex reads `.agents/plugins/market
 codex plugin marketplace add delip/pdf-human-review
 ```
 
-Then install PDF Human Review from the plugin list: run `/plugins` in the Codex CLI, or open Plugins in the Codex app.
+```bash
+codex plugin add pdf-human-review@pdf-human-review
+```
+
+You can also install it from the plugin list: run `/plugins` in the Codex CLI, or open Plugins in the Codex app.
 
 ### Antigravity
 
@@ -67,7 +71,7 @@ Copy the `skills/pdf-human-review/` folder into the agent's skills location.
 
 ## Updating
 
-Only the Claude Code steps have been tested. The others follow each agent's documentation.
+The Claude Code steps have been tested. The others follow each agent's documentation.
 
 ### Claude Code
 
@@ -93,7 +97,7 @@ Refresh the marketplace, then restart Codex:
 codex plugin marketplace upgrade pdf-human-review
 ```
 
-Codex's documentation does not say whether this also updates a plugin that is already installed. If the old version is still in use afterwards, reinstall the plugin from the plugin list.
+The upgrade command has been run, but not across a new release, so it is not confirmed that it also updates a plugin that is already installed. If `codex plugin list` still shows the old version afterwards, run `codex plugin add pdf-human-review@pdf-human-review` again.
 
 ### Antigravity
 
