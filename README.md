@@ -19,7 +19,7 @@ The plugin stops there. Finding the passage in a LaTeX source, editing and recom
 
 ## Install
 
-The skill in `skills/pdf-human-review/` is in the shared agent-skill format, and its scripts are plain Python. Each agent finds it through its own manifest in this repository. Only the Claude Code install from a local folder has been tested; the other commands follow each agent's documentation and have not been tried.
+The skill in `skills/pdf-human-review/` is in the shared agent-skill format, and its scripts are plain Python. Each agent finds it through its own manifest in this repository. The Claude Code install has been tested, from GitHub and from a local folder. The commands for the other agents follow each agent's documentation and have not been tried.
 
 ### Claude Code
 
