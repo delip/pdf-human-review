@@ -13,14 +13,23 @@
   --shadow: 0 1px 3px rgba(0,0,0,.12), 0 4px 14px rgba(0,0,0,.1);
   color-scheme: light;
 }
+/* Dark theme: the reviewer's choice (data-theme), else the system setting. The PDF pages keep their own colors. */
+:root[data-theme="dark"] {
+  --bg: #17181a; --bar: #1f2023; --ink: #e6e3dc; --muted: #9a958b; --rule: #34363a;
+  --accent: #7fb2f5; --accent-ink: #10141a; --card: #26282c; --danger: #f2877f;
+  --shadow: 0 1px 3px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4);
+  color-scheme: dark;
+}
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
     --bg: #17181a; --bar: #1f2023; --ink: #e6e3dc; --muted: #9a958b; --rule: #34363a;
     --accent: #7fb2f5; --accent-ink: #10141a; --card: #26282c; --danger: #f2877f;
     --shadow: 0 1px 3px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4);
     color-scheme: dark;
   }
 }
+#theme-btn .moon, :root[data-theme="dark"] #theme-btn .sun { display: none; }
+:root[data-theme="dark"] #theme-btn .moon { display: inline; }
 * { box-sizing: border-box; }
 html { scroll-padding-top: 84px; }
 body { margin: 0; background: var(--bg); color: var(--ink);
@@ -100,6 +109,15 @@ body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.
   .card { position: static; margin-bottom: 10px; transform: none !important; }
 }
 </style>
+<script nonce="{{NONCE}}">
+// Apply the saved theme before the page paints. Without a saved choice, follow the system.
+(() => {
+  let t = null;
+  try { t = localStorage.getItem('phr:theme'); } catch (e) { /* storage unavailable */ }
+  if (t !== 'dark' && t !== 'light') t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.dataset.theme = t;
+})();
+</script>
 </head>
 <body>
 <header class="topbar">
@@ -110,6 +128,15 @@ body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.
       <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
         <rect x="2.5" y="3.5" width="15" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-dasharray="3 2.2" stroke-linecap="round"/>
         <path d="M12.5 10.5h8a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-3.2l-2.8 2.6v-2.6h-2a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z" fill="currentColor" stroke="var(--btn-bg)" stroke-width="1.6" stroke-linejoin="round" paint-order="stroke"/>
+      </svg>
+    </button>
+    <button class="btn icon" id="theme-btn" aria-label="Switch between light and dark mode" title="Switch between light and dark mode">
+      <svg class="sun" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <circle cx="12" cy="12" r="4.2"/>
+        <path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7 7 17M17 7l1.7-1.7"/>
+      </svg>
+      <svg class="moon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+        <path d="M20 14.2A8.3 8.3 0 0 1 9.8 4a8.3 8.3 0 1 0 10.2 10.2z"/>
       </svg>
     </button>
     <button class="btn" id="zoom-out" aria-label="Zoom out">−</button>
@@ -236,6 +263,11 @@ body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.
   }
   $('#zoom-in').addEventListener('click', () => setScale(scale + 0.15));
   $('#zoom-out').addEventListener('click', () => setScale(scale - 0.15));
+  $('#theme-btn').addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('phr:theme', next); } catch (e) { /* the choice lasts for this page view only */ }
+  });
 
   // ---------- highlights ----------
   function paintHighlights(p) {
