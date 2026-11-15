@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-{{NONCE}}' https://cdn.jsdelivr.net blob:; worker-src blob:; style-src 'unsafe-inline'; font-src data: blob:; img-src data: blob:; connect-src 'self' https://cdn.jsdelivr.net data: blob:; base-uri 'none'; form-action 'none'">
+<title>Review · {{TITLE}}</title>
+<style>
+:root {
+  --bg: #ecebe7; --bar: #fffefb; --ink: #1f1d1a; --muted: #6b665e; --rule: #d6d1c6;
+  --hl: rgba(255, 213, 79, .45); --hl-active: rgba(255, 170, 0, .55); --box: #e08600;
+  --accent: #1a5fb4; --accent-ink: #fff; --card: #ffffff; --danger: #b3261e;
+  --shadow: 0 1px 3px rgba(0,0,0,.12), 0 4px 14px rgba(0,0,0,.1);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17181a; --bar: #1f2023; --ink: #e6e3dc; --muted: #9a958b; --rule: #34363a;
+    --accent: #7fb2f5; --accent-ink: #10141a; --card: #26282c; --danger: #f2877f;
+    --shadow: 0 1px 3px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4);
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: 84px; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+button { font: inherit; cursor: pointer; }
+
+.topbar { position: sticky; top: 0; z-index: 20; display: flex; gap: 10px 14px; align-items: center; flex-wrap: wrap;
+  padding: 12px 24px; min-height: 64px; background: var(--bar); border-bottom: 1px solid var(--rule); }
+.topbar strong { font-weight: 600; font-size: 17px; overflow-wrap: anywhere; }
+.topbar .hint { color: var(--muted); font-size: 14px; flex: 1 1 240px; }
+.tools { display: flex; gap: 8px; align-items: center; }
+.tools .btn { min-width: 40px; height: 40px; font-size: 18px; border-radius: 20px; justify-content: center; }
+.btn { border: 1px solid var(--rule); background: transparent; color: var(--ink); border-radius: 16px; padding: 4px 12px; font-size: 13px; }
+.btn:hover { background: var(--bg); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.btn.primary:disabled { opacity: .45; cursor: default; }
+.btn.danger { color: var(--danger); }
+.btn { --btn-bg: var(--bar); }
+.btn:hover { --btn-bg: var(--bg); }
+.btn.icon { padding: 0 12px; display: inline-flex; align-items: center; border-color: var(--ink); }
+.btn[aria-pressed="true"], .btn[aria-pressed="true"]:hover { background: var(--box); border-color: var(--box); color: #fff; --btn-bg: var(--box); }
+#zoom-label { font-size: 14px; color: var(--muted); min-width: 44px; text-align: center; font-variant-numeric: tabular-nums; }
+
+.layout { display: flex; gap: 24px; justify-content: center; align-items: flex-start; padding: 24px 20px 140px; }
+#pages { flex: 0 0 auto; max-width: 100%; }
+#margin { position: relative; flex: 0 0 320px; }
+#status { color: var(--muted); padding: 40px 0; text-align: center; }
+
+.page { position: relative; margin: 0 auto 16px; background: #fff; box-shadow: var(--shadow); overflow: hidden; }
+.page canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hl-layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.hl { position: absolute; background: var(--hl); mix-blend-mode: multiply; border-radius: 2px; }
+.hl.on { background: var(--hl-active); }
+.hl.region { background: rgba(255, 213, 79, .14); outline: 2px solid var(--box); outline-offset: -1px; }
+.hl.region.on { background: rgba(255, 170, 0, .22); outline-width: 3px; }
+.draw { position: absolute; z-index: 3; border: 2px dashed var(--box); background: rgba(255, 170, 0, .12); pointer-events: none; }
+.textLayer { position: absolute; inset: 0; z-index: 2; overflow: hidden; line-height: 1; text-align: initial;
+  -webkit-text-size-adjust: none; text-size-adjust: none; forced-color-adjust: none; transform-origin: 0 0; }
+.textLayer span, .textLayer br { color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%; }
+.textLayer ::selection { background: rgba(26, 95, 180, .3); color: transparent; }
+body.region-mode .page { cursor: crosshair; }
+body.region-mode .textLayer { pointer-events: none; user-select: none; }
+
+.card { position: absolute; left: 0; right: 0; background: var(--card); border: 1px solid var(--rule);
+  border-radius: 10px; padding: 10px 12px; box-shadow: 0 1px 2px rgba(0,0,0,.06); transition: top .15s ease, transform .15s ease; }
+.card.on { box-shadow: var(--shadow); border-color: var(--box); transform: translateX(-8px); }
+.card-where { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+.card-quote { font-size: 12px; color: var(--muted); border-left: 3px solid var(--box); padding-left: 8px;
+  margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.card-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.card textarea { width: 100%; min-height: 76px; resize: vertical; font: inherit; color: inherit; background: var(--bar);
+  border: 1px solid var(--rule); border-radius: 6px; padding: 8px; }
+.card textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.card-actions { display: flex; gap: 6px; margin-top: 8px; justify-content: flex-end; }
+.empty { color: var(--muted); font-size: 13px; padding: 4px 2px; }
+
+#pop { position: absolute; z-index: 30; background: var(--accent); color: var(--accent-ink); border: 0;
+  border-radius: 18px; padding: 6px 14px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow); }
+#submit { position: fixed; right: 24px; bottom: 24px; z-index: 40; background: var(--accent); color: var(--accent-ink);
+  border: 0; border-radius: 26px; padding: 13px 22px; font-size: 15px; font-weight: 600; box-shadow: var(--shadow); }
+#submit:hover { filter: brightness(1.08); }
+
+dialog { border: 1px solid var(--rule); border-radius: 12px; background: var(--card); color: var(--ink);
+  padding: 20px 22px; width: min(560px, calc(100vw - 32px)); box-shadow: var(--shadow); }
+dialog::backdrop { background: rgba(0,0,0,.45); }
+dialog h2 { margin: 0 0 8px; font-size: 17px; }
+dialog p { margin: 0 0 12px; color: var(--muted); }
+dialog textarea { width: 100%; height: 220px; font: 12px/1.5 ui-monospace, Menlo, monospace; color: inherit;
+  background: var(--bar); border: 1px solid var(--rule); border-radius: 6px; padding: 8px; }
+dialog .card-actions { margin-top: 14px; }
+.done-banner { position: sticky; top: 0; z-index: 50; background: #1e7b46; color: #fff; padding: 12px 20px; text-align: center; font-weight: 600; }
+body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn { display: none !important; }
+
+@media (max-width: 1000px) {
+  .layout { flex-direction: column; align-items: stretch; }
+  #margin { flex: none; min-height: 0 !important; }
+  .card { position: static; margin-bottom: 10px; transform: none !important; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <strong>{{TITLE}}</strong>
+  <span class="hint" id="hint">Select text to comment on it. For a figure, table or equation, press the area button and drag a box around it.</span>
+  <div class="tools">
+    <button class="btn icon" id="region-btn" aria-pressed="false" aria-label="Comment on an area" title="Comment on an area: drag a box around a figure, table or equation (or hold Alt and drag)">
+      <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+        <rect x="2.5" y="3.5" width="15" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-dasharray="3 2.2" stroke-linecap="round"/>
+        <path d="M12.5 10.5h8a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-3.2l-2.8 2.6v-2.6h-2a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z" fill="currentColor" stroke="var(--btn-bg)" stroke-width="1.6" stroke-linejoin="round" paint-order="stroke"/>
+      </svg>
+    </button>
+    <button class="btn" id="zoom-out" aria-label="Zoom out">−</button>
+    <span id="zoom-label">100%</span>
+    <button class="btn" id="zoom-in" aria-label="Zoom in">+</button>
+  </div>
+</header>
+<div class="layout">
+  <main id="pages"><div id="status">Loading the PDF…</div></main>
+  <aside id="margin" aria-label="Comments"></aside>
+</div>
+
+<button id="pop" hidden>Comment</button>
+<button id="submit">Submit comments</button>
+
+<dialog id="confirm">
+  <h2 id="confirm-title">Submit comments?</h2>
+  <p id="confirm-text"></p>
+  <div class="card-actions">
+    <button class="btn" id="confirm-cancel">Keep reviewing</button>
+    <button class="btn primary" id="confirm-ok">Submit</button>
+  </div>
+</dialog>
+<dialog id="fallback">
+  <h2>Copy your feedback to the agent</h2>
+  <p id="fallback-text"></p>
+  <textarea id="fallback-md" readonly></textarea>
+  <div class="card-actions">
+    <button class="btn" id="fallback-close">Close</button>
+    <button class="btn primary" id="fallback-copy">Copy to clipboard</button>
+  </div>
+</dialog>
+
+<script id="phr-meta" type="application/json">{{META_JSON}}</script>
+<script id="pdf-data" type="application/octet-stream">{{PDF_BASE64}}</script>
+<script nonce="{{NONCE}}" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script nonce="{{NONCE}}">
+(async () => {
+  'use strict';
+  const CDN = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/';
+  const meta = JSON.parse(document.getElementById('phr-meta').textContent);
+  const TOKEN = "__PHR_TOKEN__";
+  const STORE = 'phr:' + meta.docId;
+  const $ = (s) => document.querySelector(s);
+  const pagesEl = $('#pages'), margin = $('#margin'), pop = $('#pop'), submitBtn = $('#submit'), statusEl = $('#status');
+  const norm = (s) => s.normalize('NFKC').replace(/\s+/g, ' ').trim();
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  // comment: {id, kind:'text'|'region', page, rects:[{page,x,y,w,h}] as fractions of the page,
+  //           quote, label, body, editing, isNew, draft}
+  let comments = [], activeId = null, pending = null, submitted = false;
+  let pdf = null, pages = [], scale = 1, baseWidth = 820, regionMode = false;
+
+  // ---------- load ----------
+  const pdfjsLib = window.pdfjsLib;
+  if (!pdfjsLib) { statusEl.textContent = 'Could not load the PDF viewer (PDF.js). Check your internet connection and reload.'; return; }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = CDN + 'build/pdf.worker.min.js';
+  try {
+    const b64 = document.getElementById('pdf-data').textContent.trim();
+    const bin = atob(b64), data = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) data[i] = bin.charCodeAt(i);
+    pdf = await pdfjsLib.getDocument({ data, cMapUrl: CDN + 'cmaps/', cMapPacked: true,
+      standardFontDataUrl: CDN + 'standard_fonts/', isEvalSupported: false }).promise;
+  } catch (e) {
+    statusEl.textContent = 'This PDF could not be opened: ' + (e && e.message ? e.message : e); return;
+  }
+  for (let n = 1; n <= pdf.numPages; n++) {
+    const page = await pdf.getPage(n);
+    const vp = page.getViewport({ scale: 1 });
+    const el = document.createElement('div');
+    el.className = 'page'; el.dataset.page = n;
+    pages.push({ n, page, w: vp.width, h: vp.height, el, rendered: 0, task: null, text: null });
+  }
+  statusEl.remove();
+  pages.forEach((p) => pagesEl.appendChild(p.el));
+  const widest = Math.max(...pages.map((p) => p.w));
+  const fit = () => clamp(Math.min(900, document.documentElement.clientWidth - (window.matchMedia('(max-width: 1000px)').matches ? 40 : 404)), 280, 900);
+  baseWidth = fit();
+
+  // ---------- rendering ----------
+  const cssScale = () => (baseWidth / widest) * scale;
+  function sizePages() {
+    const s = cssScale();
+    for (const p of pages) { p.el.style.width = p.w * s + 'px'; p.el.style.height = p.h * s + 'px'; }
+    $('#zoom-label').textContent = Math.round(scale * 100) + '%';
+  }
+  async function textOf(p) {
+    if (!p.text) p.text = await p.page.getTextContent();
+    return p.text;
+  }
+  async function renderPage(p) {
+    const s = cssScale();
+    if (p.rendered === s) return;
+    p.rendered = s;
+    if (p.task) { try { p.task.cancel(); } catch (e) { /* ignore */ } }
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const vp = p.page.getViewport({ scale: s });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.floor(vp.width * dpr); canvas.height = Math.floor(vp.height * dpr);
+    p.task = p.page.render({ canvasContext: canvas.getContext('2d'), viewport: vp, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null });
+    try { await p.task.promise; } catch (e) { return; }
+    if (p.rendered !== s) return;
+    const tl = document.createElement('div'); tl.className = 'textLayer';
+    tl.style.setProperty('--scale-factor', s);
+    await pdfjsLib.renderTextLayer({ textContentSource: await textOf(p), container: tl, viewport: vp, textDivs: [] }).promise;
+    if (p.rendered !== s) return;
+    const hl = document.createElement('div'); hl.className = 'hl-layer';
+    p.el.replaceChildren(canvas, hl, tl);
+    paintHighlights(p);
+  }
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) renderPage(pages[+e.target.dataset.page - 1]);
+  }, { rootMargin: '800px 0px' });
+  function setScale(s) {
+    const mid = window.scrollY / Math.max(1, document.documentElement.scrollHeight);
+    scale = clamp(Math.round(s * 100) / 100, 0.5, 2.5);
+    sizePages();
+    window.scrollTo(0, mid * document.documentElement.scrollHeight);
+    for (const p of pages) {
+      const r = p.el.getBoundingClientRect();
+      if (r.bottom > -800 && r.top < window.innerHeight + 800) renderPage(p);
+    }
+    render();
+  }
+  $('#zoom-in').addEventListener('click', () => setScale(scale + 0.15));
+  $('#zoom-out').addEventListener('click', () => setScale(scale - 0.15));
+
+  // ---------- highlights ----------
+  function paintHighlights(p) {
+    const layer = p.el.querySelector('.hl-layer');
+    if (!layer) return;
+    layer.textContent = '';
+    for (const c of comments) for (const r of c.rects) {
+      if (r.page !== p.n) continue;
+      const d = document.createElement('div');
+      d.className = 'hl' + (c.kind === 'region' ? ' region' : '') + (c.id === activeId ? ' on' : '');
+      d.style.cssText = `left:${r.x * 100}%;top:${r.y * 100}%;width:${r.w * 100}%;height:${r.h * 100}%`;
+      layer.appendChild(d);
+    }
+  }
+  const paintAll = () => pages.forEach(paintHighlights);
+  function anchorTop(c) {
+    const r = c.rects[0], p = pages[r.page - 1];
+    const b = p.el.getBoundingClientRect();
+    return b.top + window.scrollY + r.y * b.height;
+  }
+  function commentAt(p, fx, fy) {
+    const hits = comments.filter((c) => c.rects.some((r) => r.page === p.n && fx >= r.x && fx <= r.x + r.w && fy >= r.y && fy <= r.y + r.h));
+    // prefer the smallest target, so text inside a region box is still reachable
+    hits.sort((a, b) => a.rects[0].w * a.rects[0].h - b.rects[0].w * b.rects[0].h);
+    return hits[0] || null;
+  }
+
+  // ---------- selection -> rects ----------
+  function selectionTarget() {
+    const sel = window.getSelection();
+    if (!sel.rangeCount || sel.isCollapsed) return null;
+    const range = sel.getRangeAt(0);
+    const node = range.commonAncestorContainer;
+    const host = node.nodeType === 1 ? node : node.parentElement;
+    if (!host || !pagesEl.contains(host)) return null;
+    const quote = norm(sel.toString());
+    if (!quote) return null;
+    const raw = [...range.getClientRects()].filter((q) => q.width > 1 && q.height > 1);
+    if (!raw.length) return null;
+    const rects = [];
+    for (const p of pages) {
+      const b = p.el.getBoundingClientRect();
+      if (b.bottom < raw[0].top - 2 || b.top > raw[raw.length - 1].bottom + 2) continue;
+      // keep the rects that sit on this page, then merge them into one rect per line
+      const mine = raw.filter((q) => q.top + q.height / 2 >= b.top && q.top + q.height / 2 <= b.bottom && q.width < b.width * 0.98)
+        .map((q) => ({ l: q.left, t: q.top, r: q.right, b: q.bottom })).sort((a, c) => a.t - c.t || a.l - c.l);
+      const lines = [];
+      for (const q of mine) {
+        const last = lines[lines.length - 1];
+        const overlap = last ? Math.min(last.b, q.b) - Math.max(last.t, q.t) : -1;
+        if (last && overlap > 0.5 * Math.min(last.b - last.t, q.b - q.t)) {
+          last.l = Math.min(last.l, q.l); last.r = Math.max(last.r, q.r); last.t = Math.min(last.t, q.t); last.b = Math.max(last.b, q.b);
+        } else lines.push(q);
+      }
+      for (const q of lines) rects.push({ page: p.n, x: (q.l - b.left) / b.width, y: (q.t - b.top) / b.height, w: (q.r - q.l) / b.width, h: (q.b - q.t) / b.height });
+    }
+    if (!rects.length) return null;
+    const end = raw[raw.length - 1];
+    return { quote, rects, x: end.right, y: clamp(end.bottom + 6, 76, window.innerHeight - 44) };
+  }
+
+  // ---------- region boxes ----------
+  // The caption nearest to a dragged box names it: "Figure 2: ..." or "Table 1: ...".
+  async function captionNear(p, box) {
+    const tc = await textOf(p), vp = p.page.getViewport({ scale: 1 });
+    const items = tc.items.filter((it) => it.str !== undefined).map((it) => {
+      const m = pdfjsLib.Util.transform(vp.transform, it.transform);
+      return { str: it.str, x: m[4] / vp.width, y: m[5] / vp.height, h: Math.abs(it.height) / vp.height, eol: it.hasEOL };
+    });
+    let best = null;
+    items.forEach((it, i) => {
+      if (!/^\s*(figure|fig\.?|table)\s*\d+/i.test(it.str)) return;
+      if (it.x < box.x - 0.2 || it.x > box.x + box.w + 0.05) return;
+      let d;
+      if (it.y >= box.y && it.y <= box.y + box.h) d = 0;
+      else if (it.y > box.y + box.h) d = it.y - (box.y + box.h);
+      else d = (box.y - it.y) * 1.5;
+      if (d <= 0.12 && (!best || d < best.d)) best = { i, d };
+    });
+    if (!best) return '';
+    let out = '', prevY = items[best.i].y;
+    for (let i = best.i; i < items.length && out.length < 220; i++) {
+      const it = items[i];
+      if (i > best.i && Math.abs(it.y - prevY) > Math.max(it.h, 0.008) * 2.4) break;   // a gap: the caption ended
+      out += it.str + (it.eol ? ' ' : ''); prevY = it.y;
+    }
+    out = norm(out);
+    return out.length > 170 ? out.slice(0, 167) + '...' : out;
+  }
+  function setRegionMode(on) {
+    regionMode = on; document.body.classList.toggle('region-mode', on);
+    $('#region-btn').setAttribute('aria-pressed', on ? 'true' : 'false');
+    $('#hint').textContent = on ? 'Drag a box around the figure, table or equation. Press Esc to cancel.' : HINT;
+    if (on) { window.getSelection().removeAllRanges(); hidePop(); }
+  }
+  $('#region-btn').addEventListener('click', () => setRegionMode(!regionMode));
+  const HINT = $('#hint').textContent;
+  let drag = null, justDragged = false;
+  pagesEl.addEventListener('mousedown', (e) => {
+    if (submitted || e.button !== 0 || !(regionMode || e.altKey)) return;
+    const el = e.target.closest('.page'); if (!el) return;
+    e.preventDefault();
+    const b = el.getBoundingClientRect();
+    const box = document.createElement('div'); box.className = 'draw'; el.appendChild(box);
+    drag = { el, b, x0: e.clientX, y0: e.clientY, box };
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!drag) return;
+    const { b, x0, y0, box } = drag;
+    const x1 = clamp(e.clientX, b.left, b.right), y1 = clamp(e.clientY, b.top, b.bottom);
+    box.style.left = Math.min(x0, x1) - b.left + 'px'; box.style.top = Math.min(y0, y1) - b.top + 'px';
+    box.style.width = Math.abs(x1 - x0) + 'px'; box.style.height = Math.abs(y1 - y0) + 'px';
+  });
+  window.addEventListener('mouseup', async (e) => {
+    if (!drag) return;
+    const { el, b, x0, y0, box } = drag; drag = null; box.remove();
+    justDragged = true; setTimeout(() => { justDragged = false; }, 0);   // swallow the click that ends the drag
+    const x1 = clamp(e.clientX, b.left, b.right), y1 = clamp(e.clientY, b.top, b.bottom);
+    setRegionMode(false);
+    if (Math.abs(x1 - x0) < 12 || Math.abs(y1 - y0) < 12) return;
+    const p = pages[+el.dataset.page - 1];
+    const r = { page: p.n, x: (Math.min(x0, x1) - b.left) / b.width, y: (Math.min(y0, y1) - b.top) / b.height,
+      w: Math.abs(x1 - x0) / b.width, h: Math.abs(y1 - y0) / b.height };
+    const cap = await captionNear(p, r);
+    const isTable = /^table/i.test(cap);
+    const label = cap ? (isTable ? '[Comment on the Table itself] ' : '[Comment on the Figure itself] ') + cap
+      : '[Comment on the boxed area itself] No caption found near the box';
+    create({ kind: 'region', page: p.n, rects: [r], quote: label });
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && regionMode) setRegionMode(false);
+    if ((e.metaKey || e.ctrlKey) && e.altKey && e.code === 'KeyM' && pending) { e.preventDefault(); pop.click(); }
+  });
+
+  // ---------- persistence ----------
+  function save() {
+    try {
+      localStorage.setItem(STORE, JSON.stringify(comments.filter((c) => !c.isNew).map((c) => ({
+        id: c.id, kind: c.kind, page: c.page, rects: c.rects, quote: c.quote, body: c.body,
+      }))));
+    } catch (e) { /* storage unavailable: comments live for this page view only */ }
+  }
+  function restore() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORE) || '[]');
+      comments = saved.filter((c) => c && c.rects && c.rects.length && c.rects.every((r) => r.page >= 1 && r.page <= pages.length));
+    } catch (e) { comments = []; }
+  }
+
+  // ---------- cards ----------
+  const btn = (label, cls, fn) => {
+    const b = document.createElement('button');
+    b.className = 'btn ' + (cls || ''); b.textContent = label; b.addEventListener('click', (e) => { e.stopPropagation(); fn(); });
+    return b;
+  };
+  const sorted = () => comments.slice().sort((a, b) => a.rects[0].page - b.rects[0].page || a.rects[0].y - b.rects[0].y || a.rects[0].x - b.rects[0].x);
+  function render() {
+    // rebuilding the cards must not take the caret out of a comment being typed
+    const typing = document.activeElement && document.activeElement.closest ? document.activeElement.closest('.card') : null;
+    const typingId = typing && document.activeElement.tagName === 'TEXTAREA' ? typing.dataset.cid : null;
+    margin.textContent = '';
+    if (!comments.length) {
+      const e = document.createElement('div'); e.className = 'empty'; e.textContent = 'No comments yet.'; margin.appendChild(e);
+    }
+    for (const c of sorted()) {
+      const card = document.createElement('div');
+      card.className = 'card' + (c.id === activeId ? ' on' : ''); card.dataset.cid = c.id;
+      const w = document.createElement('div'); w.className = 'card-where';
+      w.textContent = 'Page ' + c.page + (c.kind === 'region' ? ' · boxed area' : ''); card.appendChild(w);
+      const q = document.createElement('div'); q.className = 'card-quote'; q.textContent = c.quote; card.appendChild(q);
+      if (c.editing) {
+        const ta = document.createElement('textarea');
+        ta.placeholder = 'Add a comment'; ta.value = c.draft != null ? c.draft : c.body || '';
+        const ok = btn(c.isNew ? 'Comment' : 'Save', 'primary', () => commit(c, ta.value));
+        ok.disabled = !ta.value.trim();
+        ta.addEventListener('input', () => { c.draft = ta.value; ok.disabled = !ta.value.trim(); layout(); });
+        ta.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && ta.value.trim()) { e.preventDefault(); commit(c, ta.value); }
+          if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancel(c); }
+        });
+        const row = document.createElement('div'); row.className = 'card-actions';
+        row.append(btn('Cancel', '', () => cancel(c)), ok);
+        card.append(ta, row);
+      } else {
+        const b = document.createElement('div'); b.className = 'card-body'; b.textContent = c.body; card.appendChild(b);
+        const row = document.createElement('div'); row.className = 'card-actions';
+        row.append(btn('Delete', 'danger', () => remove(c)), btn('Edit', '', () => { c.editing = true; c.draft = c.body; activate(c.id, true); }));
+        card.appendChild(row);
+      }
+      card.addEventListener('click', () => { if (activeId !== c.id) activate(c.id, false, true); });
+      margin.appendChild(card);
+    }
+    paintAll();
+    if (typingId) {
+      const ta = margin.querySelector('.card[data-cid="' + typingId + '"] textarea');
+      if (ta) { ta.focus({ preventScroll: true }); ta.setSelectionRange(ta.value.length, ta.value.length); }
+    }
+    const n = comments.filter((c) => !c.isNew).length;
+    submitBtn.textContent = n ? 'Submit ' + n + (n === 1 ? ' comment' : ' comments') : 'Submit comments';
+    layout();
+  }
+  function layout() {
+    const cards = [...margin.querySelectorAll('.card')];
+    if (window.matchMedia('(max-width: 1000px)').matches) { cards.forEach((c) => (c.style.top = '')); return; }
+    const base = margin.getBoundingClientRect().top + window.scrollY;
+    let y = 0;
+    for (const card of cards) {
+      const c = comments.find((x) => x.id === card.dataset.cid);
+      const top = Math.max(c ? anchorTop(c) - base : 0, y);
+      card.style.top = top + 'px';
+      y = top + card.offsetHeight + 10;
+    }
+    margin.style.minHeight = y + 'px';
+  }
+  function activate(id, focus, scrollToAnchor) {
+    activeId = id; render();
+    const card = margin.querySelector('.card[data-cid="' + id + '"]');
+    if (!card) return;
+    if (focus) { const ta = card.querySelector('textarea'); if (ta) ta.focus({ preventScroll: true }); }
+    const c = comments.find((x) => x.id === id);
+    if (scrollToAnchor && c) window.scrollTo({ top: anchorTop(c) - 120, behavior: 'smooth' });
+    else card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  function commit(c, text) { c.body = text.trim(); c.editing = false; c.isNew = false; c.draft = null; save(); render(); }
+  function cancel(c) { if (c.isNew) return remove(c); c.editing = false; c.draft = null; render(); }
+  function remove(c) {
+    comments = comments.filter((x) => x !== c);
+    if (activeId === c.id) activeId = null;
+    save(); render();
+  }
+  function create(props) {
+    const c = Object.assign({ id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), body: '', editing: true, isNew: true }, props);
+    comments.push(c);
+    window.getSelection().removeAllRanges(); hidePop();
+    activate(c.id, true);
+  }
+
+  // ---------- selection popover ----------
+  function hidePop() { pop.hidden = true; pending = null; }
+  function showPop(x, y, target) {
+    pending = target; pop.hidden = false;
+    const w = pop.offsetWidth;
+    pop.style.left = clamp(x - w / 2, 8, document.documentElement.clientWidth - w - 8) + window.scrollX + 'px';
+    pop.style.top = y + window.scrollY + 'px';
+  }
+  let selTimer = null;
+  document.addEventListener('selectionchange', () => {
+    if (submitted || regionMode) return;
+    clearTimeout(selTimer);
+    selTimer = setTimeout(() => {
+      const t = selectionTarget();
+      if (t) showPop(t.x, t.y, t); else hidePop();
+    }, 120);
+  });
+  pop.addEventListener('mousedown', (e) => e.preventDefault());
+  pop.addEventListener('click', () => {
+    if (!pending) return;
+    const t = pending;
+    create({ kind: 'text', page: t.rects[0].page, rects: t.rects, quote: t.quote });
+  });
+  pagesEl.addEventListener('click', (e) => {
+    if (submitted || regionMode || justDragged) return;
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed) return;
+    const el = e.target.closest('.page');
+    let hit = null;
+    if (el) {
+      const b = el.getBoundingClientRect();
+      hit = commentAt(pages[+el.dataset.page - 1], (e.clientX - b.left) / b.width, (e.clientY - b.top) / b.height);
+    }
+    if (hit) activate(hit.id, false);
+    else if (activeId) { activeId = null; render(); }
+  });
+
+  // ---------- submit ----------
+  async function cropOf(c) {
+    const r = c.rects[0], p = pages[r.page - 1];
+    const s = Math.min(3, 1600 / (r.w * p.w));           // about 1600 px across the box, at most 3x
+    const vp = p.page.getViewport({ scale: s });
+    const full = document.createElement('canvas');
+    full.width = Math.ceil(vp.width); full.height = Math.ceil(vp.height);
+    await p.page.render({ canvasContext: full.getContext('2d'), viewport: vp }).promise;
+    const out = document.createElement('canvas');
+    out.width = Math.max(1, Math.round(r.w * full.width)); out.height = Math.max(1, Math.round(r.h * full.height));
+    out.getContext('2d').drawImage(full, Math.round(r.x * full.width), Math.round(r.y * full.height), out.width, out.height, 0, 0, out.width, out.height);
+    return out.toDataURL('image/png');
+  }
+  const pct = (v) => Math.round(v * 100) + '%';
+  function buildMarkdown(list, withImages) {
+    const lines = ['Feedback for ' + meta.pdf + ' from human reviewer'];
+    if (!list.length) lines.push('', '(The reviewer submitted without leaving any comments.)');
+    let k = 0;
+    list.forEach((c, i) => {
+      if (i > 0) lines.push('');
+      let q = '[page ' + c.page + '] ' + c.quote;
+      if (c.kind === 'region') {
+        k += 1;
+        const r = c.rects[0];
+        q += withImages ? ' (image of the boxed area: ' + meta.outDir + '/region-' + k + '.png)'
+          : ' (boxed area: ' + pct(r.x) + ' to ' + pct(r.x + r.w) + ' across, ' + pct(r.y) + ' to ' + pct(r.y + r.h) + ' down the page)';
+      }
+      lines.push('> ' + q);
+      lines.push(c.body);
+    });
+    return lines.join('\n') + '\n';
+  }
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* fall through */ }
+    const ta = $('#fallback-md'); ta.value = text; ta.focus(); ta.select();
+    try { return document.execCommand('copy'); } catch (e) { return false; }
+  }
+  function finish(message) {
+    submitted = true; document.body.classList.add('submitted');
+    try { localStorage.removeItem(STORE); } catch (e) { /* ignore */ }
+    const b = document.createElement('div'); b.className = 'done-banner'; b.textContent = message;
+    document.body.prepend(b); window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  submitBtn.addEventListener('click', () => {
+    const open = comments.filter((c) => c.editing).length, n = comments.filter((c) => !c.isNew).length;
+    const ok = $('#confirm-ok');
+    if (open) {
+      $('#confirm-title').textContent = 'Finish your open comment first';
+      $('#confirm-text').textContent = open + (open === 1 ? ' comment is' : ' comments are') + ' still being edited. Save or cancel, then submit.';
+      ok.hidden = true;
+    } else {
+      $('#confirm-title').textContent = n ? 'Submit ' + n + (n === 1 ? ' comment' : ' comments') + '?' : 'Submit with no comments?';
+      $('#confirm-text').textContent = 'This sends your feedback to the agent and ends the review. You cannot add comments afterwards.';
+      ok.hidden = false;
+    }
+    $('#confirm').showModal();
+  });
+  $('#confirm-cancel').addEventListener('click', () => $('#confirm').close());
+  $('#confirm-ok').addEventListener('click', async () => {
+    $('#confirm').close();
+    const list = sorted().filter((c) => !c.isNew);
+    let sent = false;
+    if (location.protocol.startsWith('http')) {
+      try {
+        let k = 0; const items = [];
+        for (const c of list) {
+          const item = { page: c.page, kind: c.kind, quote: c.quote, comment: c.body, rects: c.rects };
+          if (c.kind === 'region') { k += 1; item.image_name = 'region-' + k + '.png'; item.image = await cropOf(c); }
+          items.push(item);
+        }
+        const r = await fetch('/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: TOKEN, markdown: buildMarkdown(list, true), comments: items }) });
+        sent = r.ok;
+      } catch (e) { sent = false; }
+    }
+    if (sent) return finish('Feedback sent to the agent. You can close this tab.');
+    const md = buildMarkdown(list, false);
+    $('#fallback-md').value = md;
+    $('#fallback-text').textContent = '';
+    $('#fallback').showModal();   // open first: the copy fallback selects the text in this dialog
+    const copied = await copyText(md);
+    $('#fallback-text').textContent = (copied ? 'This page could not reach the agent, so your feedback was copied to the clipboard. '
+      : 'This page could not reach the agent. Copy the feedback below. ')
+      + 'Then go back to the agent and say you have submitted; it will read the feedback from your clipboard.';
+  });
+  $('#fallback-copy').addEventListener('click', async () => {
+    const ok = await copyText($('#fallback-md').value);
+    $('#fallback-copy').textContent = ok ? 'Copied' : 'Select the text and copy it';
+  });
+  $('#fallback-close').addEventListener('click', () => $('#fallback').close());
+
+  // ---------- go ----------
+  sizePages();
+  pages.forEach((p) => io.observe(p.el));
+  restore(); render();
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { const w = fit(); if (Math.abs(w - baseWidth) > 8) { baseWidth = w; setScale(scale); } else layout(); }, 150);
+  });
+  window.phrReady = true;
+})();
+</script>
+</body>
+</html>

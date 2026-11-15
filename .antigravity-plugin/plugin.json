@@ -1,0 +1,13 @@
+{
+  "name": "pdf-human-review",
+  "displayName": "PDF Human Review",
+  "version": "0.3.1",
+  "description": "Review a PDF in the browser and send your comments back to the agent",
+  "suggestedPrompts": [
+    "I want to do a human review of this PDF"
+  ],
+  "category": "Productivity",
+  "keywords": ["pdf", "review", "comments", "annotation", "human-in-the-loop", "feedback"],
+  "author": { "name": "delip" },
+  "license": "MIT"
+}

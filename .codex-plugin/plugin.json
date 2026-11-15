@@ -1,0 +1,22 @@
+{
+  "name": "pdf-human-review",
+  "version": "0.3.1",
+  "description": "Open a PDF in an interactive review page (PDF.js) with Google-Docs-style comments on selected text and boxed figures, then hand the reviewer's comments back to the calling agent as markdown.",
+  "author": { "name": "delip", "url": "https://github.com/delip" },
+  "license": "MIT",
+  "keywords": ["pdf", "review", "comments", "annotation", "human-in-the-loop", "feedback"],
+  "skills": "./skills/",
+  "hooks": {},
+  "interface": {
+    "displayName": "PDF Human Review",
+    "shortDescription": "Review a PDF in the browser and send your comments back to the agent",
+    "longDescription": "Opens a PDF in a local review page. Select text or box a figure, table or equation, leave comments in the margin, and press Submit. The agent receives the comments as markdown with page numbers and quoted text.",
+    "developerName": "delip",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Read"],
+    "defaultPrompt": [
+      "I want to do a human review of this PDF."
+    ],
+    "screenshots": []
+  }
+}

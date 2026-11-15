@@ -1,0 +1,11 @@
+{
+  "name": "pdf-human-review",
+  "owner": { "name": "delip" },
+  "plugins": [
+    {
+      "name": "pdf-human-review",
+      "source": "./",
+      "description": "Review a PDF in the browser and send comments back to the agent as markdown."
+    }
+  ]
+}
