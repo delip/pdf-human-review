@@ -1,7 +1,7 @@
 {
   "name": "pdf-human-review",
   "description": "Open a PDF in an interactive review page (PDF.js) with Google-Docs-style comments on selected text and boxed figures, then hand the reviewer's comments back to the calling agent as markdown.",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "author": {
     "name": "delip",
     "url": "https://github.com/delip"

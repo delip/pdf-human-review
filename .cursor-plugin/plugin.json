@@ -2,11 +2,20 @@
   "name": "pdf-human-review",
   "displayName": "PDF Human Review",
   "description": "Review a PDF in the browser and send your comments back to the agent",
-  "version": "0.3.1",
-  "author": { "name": "delip" },
+  "version": "0.4.0",
+  "author": {
+    "name": "delip"
+  },
   "homepage": "https://github.com/delip/pdf-human-review",
   "repository": "https://github.com/delip/pdf-human-review",
   "license": "MIT",
-  "keywords": ["pdf", "review", "comments", "annotation", "human-in-the-loop", "feedback"],
+  "keywords": [
+    "pdf",
+    "review",
+    "comments",
+    "annotation",
+    "human-in-the-loop",
+    "feedback"
+  ],
   "skills": "./skills/"
 }
