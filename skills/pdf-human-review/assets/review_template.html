@@ -48,7 +48,13 @@ button { font: inherit; cursor: pointer; }
 .btn:hover { background: var(--bg); }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
 .btn.primary:disabled { opacity: .45; cursor: default; }
-.tools .btn:disabled { opacity: .35; cursor: default; background: transparent; }
+.tools .btn:disabled, .pager .btn:disabled { opacity: .35; cursor: default; background: transparent; }
+.pager { display: flex; align-items: center; gap: 4px; }
+.pager .btn { width: 34px; height: 34px; padding: 0; border-radius: 17px; display: inline-flex; align-items: center; justify-content: center; }
+#page-input { width: 46px; height: 34px; margin-left: 4px; text-align: center; font: inherit; font-variant-numeric: tabular-nums; color: var(--ink);
+  background: var(--bg); border: 1px solid var(--rule); border-radius: 8px; }
+#page-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.page-of { color: var(--muted); font-size: 14px; margin-right: 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .btn.danger { color: var(--danger); }
 .btn { --btn-bg: var(--bar); }
 .btn:hover { --btn-bg: var(--bg); }
@@ -143,6 +149,22 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
 <body>
 <header class="topbar">
   <strong>{{TITLE}}</strong>
+  <div class="pager" role="group" aria-label="Page navigation">
+    <button class="btn" id="page-first" aria-label="First page" title="First page">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><rect x="5" y="5" width="2.4" height="14" rx="1"/><path d="M19 5.6v12.8a.8.8 0 0 1-1.25.66L9 12.66a.8.8 0 0 1 0-1.32l8.75-6.4A.8.8 0 0 1 19 5.6z"/></svg>
+    </button>
+    <button class="btn" id="page-prev" aria-label="Previous page" title="Previous page">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d="M17 5.6v12.8a.8.8 0 0 1-1.25.66L7 12.66a.8.8 0 0 1 0-1.32l8.75-6.4A.8.8 0 0 1 17 5.6z"/></svg>
+    </button>
+    <input id="page-input" type="text" inputmode="numeric" autocomplete="off" value="1" aria-label="Page number" title="Type a page number and press Enter">
+    <span class="page-of">/ <span id="page-count">1</span></span>
+    <button class="btn" id="page-next" aria-label="Next page" title="Next page">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d="M7 5.6v12.8a.8.8 0 0 0 1.25.66L17 12.66a.8.8 0 0 0 0-1.32L8.25 4.94A.8.8 0 0 0 7 5.6z"/></svg>
+    </button>
+    <button class="btn" id="page-last" aria-label="Last page" title="Last page">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><rect x="16.6" y="5" width="2.4" height="14" rx="1"/><path d="M5 5.6v12.8a.8.8 0 0 0 1.25.66L15 12.66a.8.8 0 0 0 0-1.32L6.25 4.94A.8.8 0 0 0 5 5.6z"/></svg>
+    </button>
+  </div>
   <div class="tools">
     <button class="btn icon" id="region-btn" aria-pressed="false" aria-label="Comment on an area" title="Comment on an area: drag a box around a figure, table or equation (or hold Alt and drag)">
       <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
@@ -210,6 +232,8 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
       <dt><kbd>Esc</kbd></dt><dd>Cancel the comment you are writing, or a box you are drawing</dd>
       <dt><kbd>?</kbd></dt><dd>Show or hide this help</dd>
     </dl>
+    <h2>Moving through the pages</h2>
+    <p>Scroll with the mouse wheel or trackpad, or use the page controls in the top bar: first, previous, next and last page. To jump to a page, type its number in the box and press Enter.</p>
     <p class="help-close">Press <kbd>Esc</kbd> to close</p>
   </div>
 </div>
@@ -326,6 +350,7 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
       if (r.bottom > -800 && r.top < window.innerHeight + 800) renderPage(p);
     }
     render();
+    showCurrentPage();
   }
   $('#zoom-in').addEventListener('click', () => setScale(scale + 0.15));
   $('#zoom-out').addEventListener('click', () => setScale(scale - 0.15));
@@ -788,6 +813,53 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => { const w = fit(); if (Math.abs(w - baseWidth) > 8) { baseWidth = w; setScale(scale); } else layout(); }, 150);
   });
+  // ---------- page navigation ----------
+  const pageInput = $('#page-input');
+  let currentPage = 1;
+  $('#page-count').textContent = pages.length;
+  pageInput.style.width = Math.max(46, 22 + String(pages.length).length * 12) + 'px';
+  function showCurrentPage() {
+    // the current page is the one under a line a third of the way down the reading area
+    const top = $('.topbar').getBoundingClientRect().bottom, bottom = $('.tipbar').getBoundingClientRect().top;
+    const ref = top + (bottom - top) * 0.35;
+    let n = 1;
+    for (const p of pages) { if (p.el.getBoundingClientRect().top <= ref) n = p.n; else break; }
+    if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2) n = pages.length;
+    currentPage = n;
+    if (document.activeElement !== pageInput) pageInput.value = n;
+    $('#page-first').disabled = $('#page-prev').disabled = n <= 1;
+    $('#page-next').disabled = $('#page-last').disabled = n >= pages.length;
+  }
+  function goToPage(n, smooth) {
+    n = clamp(Math.round(n), 1, pages.length);
+    // land the page just below the top bar, however many rows the bar has wrapped onto
+    const y = pages[n - 1].el.getBoundingClientRect().top + window.scrollY - $('.topbar').getBoundingClientRect().height - 12;
+    window.scrollTo({ top: Math.max(0, y), behavior: smooth ? 'smooth' : 'auto' });
+    if (!smooth) showCurrentPage();
+  }
+  $('#page-first').addEventListener('click', () => goToPage(1));
+  $('#page-last').addEventListener('click', () => goToPage(pages.length));
+  $('#page-prev').addEventListener('click', () => goToPage(currentPage - 1, true));
+  $('#page-next').addEventListener('click', () => goToPage(currentPage + 1, true));
+  // Clicking the box selects the number, so typing replaces it. The select runs after the
+  // click finishes, because the mouse-up would otherwise drop the selection again.
+  pageInput.addEventListener('focus', () => setTimeout(() => pageInput.select(), 0));
+  pageInput.addEventListener('blur', () => { pageInput.value = currentPage; });
+  pageInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const n = parseInt(pageInput.value, 10);
+      pageInput.blur();
+      if (Number.isFinite(n)) goToPage(n);
+    } else if (e.key === 'Escape') { pageInput.blur(); }
+  });
+  let pageTick = false;
+  window.addEventListener('scroll', () => {
+    if (pageTick) return;
+    pageTick = true;
+    requestAnimationFrame(() => { pageTick = false; showCurrentPage(); });
+  }, { passive: true });
+  showCurrentPage();
+
   window.phrReady = true;
 })();
 </script>
