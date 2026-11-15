@@ -81,13 +81,15 @@ A new release reaches you only when its version number changes. To update by han
 claude plugin update pdf-human-review@pdf-human-review
 ```
 
+New sessions load the new version on their own. In a session that is already open, run `/reload-plugins` to switch to it.
+
 To get new releases automatically, turn on auto-update for this marketplace once. It is off by default for marketplaces that are not Anthropic's own.
 
 1. Run `claude` in a terminal and type `/plugin`.
 2. Open the **Marketplaces** tab and select `pdf-human-review`.
 3. Choose **Enable auto-update**.
 
-Claude Code then checks for a new release shortly after each session starts. A session that is already running keeps the version it loaded, and the next session uses the new one.
+Claude Code then checks for a new release shortly after each session starts. A session that is already running keeps the version it loaded until you run `/reload-plugins` in it.
 
 ### Codex
 
