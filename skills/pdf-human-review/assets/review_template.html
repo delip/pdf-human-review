@@ -38,14 +38,17 @@ button { font: inherit; cursor: pointer; }
 
 .topbar { position: sticky; top: 0; z-index: 20; display: flex; gap: 10px 14px; align-items: center; flex-wrap: wrap;
   padding: 12px 24px; min-height: 64px; background: var(--bar); border-bottom: 1px solid var(--rule); }
-.topbar strong { font-weight: 600; font-size: 17px; overflow-wrap: anywhere; }
-.topbar .hint { color: var(--muted); font-size: 14px; flex: 1 1 240px; }
+.topbar strong { font-weight: 600; font-size: 17px; overflow-wrap: anywhere; flex: 1 1 160px; }
+.tipbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 35; display: flex; align-items: center; gap: 16px;
+  padding: 8px 24px; background: var(--bar); border-top: 1px solid var(--rule); color: var(--muted); font-size: 13px; }
+.tipbar #hint { flex: 1 1 auto; min-width: 0; cursor: pointer; }
 .tools { display: flex; gap: 8px; align-items: center; }
 .tools .btn { min-width: 40px; height: 40px; font-size: 18px; border-radius: 20px; justify-content: center; }
 .btn { border: 1px solid var(--rule); background: transparent; color: var(--ink); border-radius: 16px; padding: 4px 12px; font-size: 13px; }
 .btn:hover { background: var(--bg); }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
 .btn.primary:disabled { opacity: .45; cursor: default; }
+.tools .btn:disabled { opacity: .35; cursor: default; background: transparent; }
 .btn.danger { color: var(--danger); }
 .btn { --btn-bg: var(--bar); }
 .btn:hover { --btn-bg: var(--bg); }
@@ -53,9 +56,9 @@ button { font: inherit; cursor: pointer; }
 .btn[aria-pressed="true"], .btn[aria-pressed="true"]:hover { background: var(--box); border-color: var(--box); color: #fff; --btn-bg: var(--box); }
 #zoom-label { font-size: 14px; color: var(--muted); min-width: 44px; text-align: center; font-variant-numeric: tabular-nums; }
 
-.layout { display: flex; gap: 24px; justify-content: center; align-items: flex-start; padding: 24px 20px 140px; }
-#pages { flex: 0 0 auto; max-width: 100%; }
-#margin { position: relative; flex: 0 0 320px; }
+.layout { display: flex; gap: 24px; justify-content: center; align-items: flex-start; padding: 24px 20px 120px; }
+#pages { flex: 0 1 auto; min-width: 0; max-width: 100%; overflow-x: auto; padding: 4px; margin: -4px; }
+#margin { position: relative; flex: 0 0 clamp(190px, 30vw, 320px); }
 #status { color: var(--muted); padding: 40px 0; text-align: center; }
 
 .page { position: relative; margin: 0 auto 16px; background: #fff; box-shadow: var(--shadow); overflow: hidden; }
@@ -80,6 +83,10 @@ body.region-mode .textLayer { pointer-events: none; user-select: none; }
 .card-quote { font-size: 12px; color: var(--muted); border-left: 3px solid var(--box); padding-left: 8px;
   margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .card-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.card.compact { padding: 4px 12px; border-left: 3px solid var(--box); cursor: pointer; }
+.card.compact .card-where, .card.compact .card-quote, .card.compact .card-actions { display: none; }
+.card.compact .card-body { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+.card.compact:hover { border-color: var(--box); }
 .card textarea { width: 100%; min-height: 76px; resize: vertical; font: inherit; color: inherit; background: var(--bar);
   border: 1px solid var(--rule); border-radius: 6px; padding: 8px; }
 .card textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
@@ -88,25 +95,39 @@ body.region-mode .textLayer { pointer-events: none; user-select: none; }
 
 #pop { position: absolute; z-index: 30; background: var(--accent); color: var(--accent-ink); border: 0;
   border-radius: 18px; padding: 6px 14px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow); }
-#submit { position: fixed; right: 24px; bottom: 24px; z-index: 40; background: var(--accent); color: var(--accent-ink);
-  border: 0; border-radius: 26px; padding: 13px 22px; font-size: 15px; font-weight: 600; box-shadow: var(--shadow); }
+#submit { flex: 0 0 auto; background: var(--accent); color: var(--accent-ink);
+  border: 0; border-radius: 22px; padding: 10px 20px; font-size: 15px; font-weight: 600; white-space: nowrap; }
 #submit:hover { filter: brightness(1.08); }
 
 dialog { border: 1px solid var(--rule); border-radius: 12px; background: var(--card); color: var(--ink);
   padding: 20px 22px; width: min(560px, calc(100vw - 32px)); box-shadow: var(--shadow); }
 dialog::backdrop { background: rgba(0,0,0,.45); }
+kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border: 1px solid currentColor; border-radius: 5px;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; text-align: center; opacity: .9; }
+#help { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 24px;
+  background: rgba(12, 13, 15, .86); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); color: #f2f0ea; overflow-y: auto; }
+#help[hidden] { display: none; }
+.help-panel { width: min(560px, 100%); margin: auto; }
+.help-panel h2 { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #b9b4a8; margin: 0 0 10px; }
+.help-panel h2:not(:first-child) { margin-top: 28px; }
+.help-panel p { font-size: 17px; line-height: 1.5; margin: 0; }
+.help-panel dl { display: grid; grid-template-columns: max-content 1fr; gap: 10px 20px; margin: 0; font-size: 16px; align-items: baseline; }
+.help-panel dt { white-space: nowrap; } .help-panel dd { margin: 0; }
+.help-panel .help-close { margin-top: 30px; font-size: 13px; color: #b9b4a8; }
 dialog h2 { margin: 0 0 8px; font-size: 17px; }
 dialog p { margin: 0 0 12px; color: var(--muted); }
 dialog textarea { width: 100%; height: 220px; font: 12px/1.5 ui-monospace, Menlo, monospace; color: inherit;
   background: var(--bar); border: 1px solid var(--rule); border-radius: 6px; padding: 8px; }
 dialog .card-actions { margin-top: 14px; }
 .done-banner { position: sticky; top: 0; z-index: 50; background: #1e7b46; color: #fff; padding: 12px 20px; text-align: center; font-weight: 600; }
-body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn { display: none !important; }
+body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, body.submitted .tipbar { display: none !important; }
 
-@media (max-width: 1000px) {
-  .layout { flex-direction: column; align-items: stretch; }
-  #margin { flex: none; min-height: 0 !important; }
-  .card { position: static; margin-bottom: 10px; transform: none !important; }
+/* Comments always sit beside the page. In a narrow window the comment column narrows a little
+   and the page shrinks to fit; it never drops below the page. */
+@media (max-width: 720px) {
+  .layout { gap: 12px; padding-left: 10px; padding-right: 10px; }
+  .card { padding: 8px 9px; }
+  .card.on { transform: none; }
 }
 </style>
 <script nonce="{{NONCE}}">
@@ -122,12 +143,32 @@ body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.
 <body>
 <header class="topbar">
   <strong>{{TITLE}}</strong>
-  <span class="hint" id="hint">Select text to comment on it. For a figure, table or equation, press the area button and drag a box around it.</span>
   <div class="tools">
     <button class="btn icon" id="region-btn" aria-pressed="false" aria-label="Comment on an area" title="Comment on an area: drag a box around a figure, table or equation (or hold Alt and drag)">
       <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
         <rect x="2.5" y="3.5" width="15" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-dasharray="3 2.2" stroke-linecap="round"/>
         <path d="M12.5 10.5h8a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-3.2l-2.8 2.6v-2.6h-2a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z" fill="currentColor" stroke="var(--btn-bg)" stroke-width="1.6" stroke-linejoin="round" paint-order="stroke"/>
+      </svg>
+    </button>
+    <button class="btn icon" id="recent-btn" disabled aria-label="Go to the most recent comment" title="Go to the most recent comment, the one you added or edited last (R)">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4.5 4.5h15a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H11l-4.5 3.5V17h-2a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2z"/>
+        <path d="M12 7.6v3.6l2.6 1.6"/>
+      </svg>
+    </button>
+    <button class="btn icon" id="last-btn" disabled aria-label="Go to the last comment in the document" title="Go to the last comment in the document, the one furthest down the pages (L)">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4.5 4.5h15a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H11l-4.5 3.5V17h-2a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2z"/>
+        <path d="M12 7v4.8"/>
+        <path d="M9.6 9.6 12 12l2.4-2.4"/>
+        <path d="M9 14.4h6"/>
+      </svg>
+    </button>
+    <button class="btn icon" id="collapse-btn" aria-pressed="false" disabled aria-label="Collapse all comments" title="Collapse all comments to one line each; press again to expand (C)">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7 4.5l5 5 5-5"/>
+        <path d="M7 19.5l5-5 5 5"/>
+        <path d="M4 12h16" stroke-dasharray="0.1 3.3"/>
       </svg>
     </button>
     <button class="btn icon" id="theme-btn" aria-label="Switch between light and dark mode" title="Switch between light and dark mode">
@@ -139,9 +180,9 @@ body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.
         <path d="M20 14.2A8.3 8.3 0 0 1 9.8 4a8.3 8.3 0 1 0 10.2 10.2z"/>
       </svg>
     </button>
-    <button class="btn" id="zoom-out" aria-label="Zoom out">−</button>
+    <button class="btn" id="zoom-out" aria-label="Zoom out" title="Zoom out (−)">−</button>
     <span id="zoom-label">100%</span>
-    <button class="btn" id="zoom-in" aria-label="Zoom in">+</button>
+    <button class="btn" id="zoom-in" aria-label="Zoom in" title="Zoom in (+)">+</button>
   </div>
 </header>
 <div class="layout">
@@ -149,8 +190,31 @@ body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.
   <aside id="margin" aria-label="Comments"></aside>
 </div>
 
+<footer class="tipbar">
+  <span id="hint">Press <kbd>?</kbd> to learn more</span>
+  <button id="submit">Submit comments</button>
+</footer>
+
+<div id="help" hidden role="dialog" aria-modal="true" aria-label="How to comment, and keyboard shortcuts">
+  <div class="help-panel">
+    <h2>How to comment</h2>
+    <p>Select text to comment on it. For a figure, table or equation, press the area button and drag a box around it.</p>
+    <h2>Keyboard shortcuts</h2>
+    <dl>
+      <dt><kbd>R</kbd></dt><dd>Go to the most recent comment</dd>
+      <dt><kbd>L</kbd></dt><dd>Go to the last comment in the document</dd>
+      <dt><kbd>C</kbd></dt><dd>Collapse or expand all comments</dd>
+      <dt><kbd>+</kbd> <kbd>−</kbd></dt><dd>Zoom in, zoom out</dd>
+      <dt><kbd>Alt</kbd> + drag</dt><dd>Box an area without pressing the area button</dd>
+      <dt><kbd>⌘/Ctrl</kbd> <kbd>Enter</kbd></dt><dd>Save the comment you are writing</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Cancel the comment you are writing, or a box you are drawing</dd>
+      <dt><kbd>?</kbd></dt><dd>Show or hide this help</dd>
+    </dl>
+    <p class="help-close">Press <kbd>Esc</kbd> to close</p>
+  </div>
+</div>
+
 <button id="pop" hidden>Comment</button>
-<button id="submit">Submit comments</button>
 
 <dialog id="confirm">
   <h2 id="confirm-title">Submit comments?</h2>
@@ -189,6 +253,7 @@ body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.
   //           quote, label, body, editing, isNew, draft}
   let comments = [], activeId = null, pending = null, submitted = false;
   let pdf = null, pages = [], scale = 1, baseWidth = 820, regionMode = false;
+  let collapseAll = false;   // the "collapse all comments" button: every saved card shows as one line
 
   // ---------- load ----------
   const pdfjsLib = window.pdfjsLib;
@@ -213,7 +278,8 @@ body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.
   statusEl.remove();
   pages.forEach((p) => pagesEl.appendChild(p.el));
   const widest = Math.max(...pages.map((p) => p.w));
-  const fit = () => clamp(Math.min(900, document.documentElement.clientWidth - (window.matchMedia('(max-width: 1000px)').matches ? 40 : 404)), 280, 900);
+  // the page takes the width left over beside the comment column
+  const fit = () => clamp(Math.min(900, document.documentElement.clientWidth - margin.offsetWidth - (window.innerWidth <= 720 ? 40 : 84)), 240, 900);
   baseWidth = fit();
 
   // ---------- rendering ----------
@@ -263,6 +329,23 @@ body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.
   }
   $('#zoom-in').addEventListener('click', () => setScale(scale + 0.15));
   $('#zoom-out').addEventListener('click', () => setScale(scale - 0.15));
+  $('#recent-btn').addEventListener('click', () => {
+    const c = recentComment();
+    if (c) activate(c.id, c.editing, true);
+  });
+  $('#last-btn').addEventListener('click', () => {      // last in reading order: furthest down the document
+    const list = sorted();
+    const c = list[list.length - 1];
+    if (c) activate(c.id, c.editing, true);
+  });
+  $('#collapse-btn').addEventListener('click', () => {
+    collapseAll = !collapseAll;
+    if (collapseAll && activeId) {                      // close the open card too, unless it is being written
+      const c = comments.find((x) => x.id === activeId);
+      if (!c || !c.editing) activeId = null;
+    }
+    render();
+  });
   $('#theme-btn').addEventListener('click', () => {
     const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = next;
@@ -303,7 +386,7 @@ body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.
     const node = range.commonAncestorContainer;
     const host = node.nodeType === 1 ? node : node.parentElement;
     if (!host || !pagesEl.contains(host)) return null;
-    const quote = norm(sel.toString());
+    const quote = norm(sel.toString().replace(/-[ \t]*\n[ \t]*/g, '-'));
     if (!quote) return null;
     const raw = [...range.getClientRects()].filter((q) => q.width > 1 && q.height > 1);
     if (!raw.length) return null;
@@ -326,7 +409,7 @@ body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.
     }
     if (!rects.length) return null;
     const end = raw[raw.length - 1];
-    return { quote, rects, x: end.right, y: clamp(end.bottom + 6, 76, window.innerHeight - 44) };
+    return { quote, rects, x: end.right, y: clamp(end.bottom + 6, 76, window.innerHeight - 100) };
   }
 
   // ---------- region boxes ----------
@@ -360,11 +443,11 @@ body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.
   function setRegionMode(on) {
     regionMode = on; document.body.classList.toggle('region-mode', on);
     $('#region-btn').setAttribute('aria-pressed', on ? 'true' : 'false');
-    $('#hint').textContent = on ? 'Drag a box around the figure, table or equation. Press Esc to cancel.' : HINT;
+    if (on) $('#hint').textContent = 'Drag a box around the figure, table or equation. Press Esc to cancel.'; else $('#hint').innerHTML = HINT;
     if (on) { window.getSelection().removeAllRanges(); hidePop(); }
   }
   $('#region-btn').addEventListener('click', () => setRegionMode(!regionMode));
-  const HINT = $('#hint').textContent;
+  const HINT = $('#hint').innerHTML;
   let drag = null, justDragged = false;
   pagesEl.addEventListener('mousedown', (e) => {
     if (submitted || e.button !== 0 || !(regionMode || e.altKey)) return;
@@ -398,15 +481,32 @@ body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.
     create({ kind: 'region', page: p.n, rects: [r], quote: label });
   });
   document.addEventListener('keydown', (e) => {
+    const help = $('#help');
+    if (e.key === 'Escape' && !help.hidden) { help.hidden = true; e.preventDefault(); return; }
     if (e.key === 'Escape' && regionMode) setRegionMode(false);
-    if ((e.metaKey || e.ctrlKey) && e.altKey && e.code === 'KeyM' && pending) { e.preventDefault(); pop.click(); }
+    if ((e.metaKey || e.ctrlKey) && e.altKey && e.code === 'KeyM' && pending) { e.preventDefault(); pop.click(); return; }
+    // Single-key shortcuts. They never fire while typing (a "?" in a comment is just a "?"),
+    // with a modifier key held, or while a dialog is open.
+    const t = e.target;
+    const typing = t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.isContentEditable);
+    if (typing || e.metaKey || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return;
+    if (e.key === '?') { help.hidden = !help.hidden; e.preventDefault(); return; }
+    if (!help.hidden) return;                           // the help covers the page: only ? and Esc act
+    const press = (id) => { const b = $(id); if (!b.disabled) b.click(); e.preventDefault(); };
+    switch (e.key.toLowerCase()) {
+      case 'r': press('#recent-btn'); break;
+      case 'l': press('#last-btn'); break;
+      case 'c': press('#collapse-btn'); break;
+      case '+': case '=': press('#zoom-in'); break;
+      case '-': case '_': case '−': press('#zoom-out'); break;
+    }
   });
 
   // ---------- persistence ----------
   function save() {
     try {
       localStorage.setItem(STORE, JSON.stringify(comments.filter((c) => !c.isNew).map((c) => ({
-        id: c.id, kind: c.kind, page: c.page, rects: c.rects, quote: c.quote, body: c.body,
+        id: c.id, kind: c.kind, page: c.page, rects: c.rects, quote: c.quote, body: c.body, t: c.t,
       }))));
     } catch (e) { /* storage unavailable: comments live for this page view only */ }
   }
@@ -443,7 +543,9 @@ body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.
         ta.placeholder = 'Add a comment'; ta.value = c.draft != null ? c.draft : c.body || '';
         const ok = btn(c.isNew ? 'Comment' : 'Save', 'primary', () => commit(c, ta.value));
         ok.disabled = !ta.value.trim();
-        ta.addEventListener('input', () => { c.draft = ta.value; ok.disabled = !ta.value.trim(); layout(); });
+        const grow = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight + 2, 320) + 'px'; };
+        ta.addEventListener('input', () => { c.draft = ta.value; ok.disabled = !ta.value.trim(); grow(); layout(); });
+        requestAnimationFrame(() => { grow(); layout(); });
         ta.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && ta.value.trim()) { e.preventDefault(); commit(c, ta.value); }
           if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancel(c); }
@@ -466,20 +568,56 @@ body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.
       if (ta) { ta.focus({ preventScroll: true }); ta.setSelectionRange(ta.value.length, ta.value.length); }
     }
     const n = comments.filter((c) => !c.isNew).length;
+    if (!n) collapseAll = false;
+    $('#recent-btn').disabled = $('#last-btn').disabled = !comments.length;
+    const cb = $('#collapse-btn');
+    cb.disabled = !n;
+    cb.setAttribute('aria-pressed', collapseAll ? 'true' : 'false');
     submitBtn.textContent = n ? 'Submit ' + n + (n === 1 ? ' comment' : ' comments') : 'Submit comments';
     layout();
   }
+  // Margin layout. Two rules keep a comment next to the text it is about:
+  //  1. The active card (the one being written or read) is pinned level with its highlight,
+  //     and the cards before it are pushed up out of its way, as Google Docs does.
+  //  2. A saved card shrinks to one line when its full height would run into the next
+  //     comment's line, so a run of comments on consecutive sentences stays compact.
   function layout() {
+    const GAP = 8;
     const cards = [...margin.querySelectorAll('.card')];
-    if (window.matchMedia('(max-width: 1000px)').matches) { cards.forEach((c) => (c.style.top = '')); return; }
+    cards.forEach((card) => card.classList.remove('compact'));
     const base = margin.getBoundingClientRect().top + window.scrollY;
-    let y = 0;
-    for (const card of cards) {
+    const items = cards.map((card) => {
       const c = comments.find((x) => x.id === card.dataset.cid);
-      const top = Math.max(c ? anchorTop(c) - base : 0, y);
-      card.style.top = top + 'px';
-      y = top + card.offsetHeight + 10;
+      return { card, c, want: c ? Math.max(0, anchorTop(c) - base) : 0, full: card.offsetHeight };
+    });
+    // one-line cards sit closer together than full ones
+    const gap = (i) => (items[i + 1] && items[i].card.classList.contains('compact') && items[i + 1].card.classList.contains('compact') ? 4 : GAP);
+    let bottom = 0;
+    items.forEach((it, i) => {
+      const prev = items[i - 1], next = items[i + 1];
+      const open = it.c && (it.c.id === activeId || it.c.editing);
+      const crowded = (prev && bottom + GAP > it.want + 2) || (next && it.want + it.full + GAP > next.want);
+      if (!open && (collapseAll || crowded)) it.card.classList.add('compact');
+      it.h = it.card.offsetHeight;
+      it.top = Math.max(it.want, prev ? bottom + gap(i - 1) : 0);
+      bottom = it.top + it.h;
+      it.card.style.zIndex = '';
+    });
+    let y = bottom + GAP;
+    const a = items.findIndex((it) => it.c && it.c.id === activeId);
+    if (a >= 0 && items[a].top > items[a].want) {
+      items[a].top = items[a].want;
+      for (let i = a - 1; i >= 0; i--) items[i].top = Math.min(items[i].top, items[i + 1].top - items[i].h - gap(i));
+      // No room above for all of them: the active card stays level with its text, and the
+      // earliest cards pile up at the top like a deck. Each is still one click away through
+      // its highlight on the page.
+      let piled = 0;
+      for (let i = 0; i < a; i++) if (items[i].top < 0) { items[i].top = Math.min(piled, 4) * 3; items[i].card.style.zIndex = String(piled + 1); piled += 1; }
+      for (let i = piled; i <= a; i++) items[i].card.style.zIndex = String(piled + 2);
+      y = items[a].top + items[a].h + GAP;
+      for (let i = a + 1; i < items.length; i++) { items[i].top = Math.max(items[i].want, y); y = items[i].top + items[i].h + gap(i); }
     }
+    for (const it of items) it.card.style.top = it.top + 'px';
     margin.style.minHeight = y + 'px';
   }
   function activate(id, focus, scrollToAnchor) {
@@ -491,7 +629,13 @@ body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.
     if (scrollToAnchor && c) window.scrollTo({ top: anchorTop(c) - 120, behavior: 'smooth' });
     else card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
-  function commit(c, text) { c.body = text.trim(); c.editing = false; c.isNew = false; c.draft = null; save(); render(); }
+  function commit(c, text) { c.body = text.trim(); c.editing = false; c.isNew = false; c.draft = null; c.t = Date.now(); save(); render(); }
+  // The most recent comment is the one added or edited last, including one still being written.
+  function recentComment() {
+    let best = null;
+    for (const c of comments) if (!best || (c.t || 0) >= (best.t || 0)) best = c;
+    return best;
+  }
   function cancel(c) { if (c.isNew) return remove(c); c.editing = false; c.draft = null; render(); }
   function remove(c) {
     comments = comments.filter((x) => x !== c);
@@ -499,7 +643,7 @@ body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.
     save(); render();
   }
   function create(props) {
-    const c = Object.assign({ id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), body: '', editing: true, isNew: true }, props);
+    const c = Object.assign({ id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), body: '', editing: true, isNew: true, t: Date.now() }, props);
     comments.push(c);
     window.getSelection().removeAllRanges(); hidePop();
     activate(c.id, true);
@@ -522,6 +666,8 @@ body.submitted #submit, body.submitted #pop, body.submitted .card-actions, body.
       if (t) showPop(t.x, t.y, t); else hidePop();
     }, 120);
   });
+  $('#help').addEventListener('click', () => { $('#help').hidden = true; });
+  $('#hint').addEventListener('click', () => { if (!regionMode) $('#help').hidden = false; });
   pop.addEventListener('mousedown', (e) => e.preventDefault());
   pop.addEventListener('click', () => {
     if (!pending) return;
