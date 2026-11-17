@@ -28,7 +28,7 @@ This opens the review page in the user's browser and **blocks until they press S
 - If you can only run short foreground commands, start it detached with its output sent to a log file in a temporary folder, and read the URL from that log.
 - The URL is printed on stderr as soon as the server is listening.
 
-Then tell the user, briefly: the URL; that they select text to comment on it; that for a figure, table or equation they press the area button in the top bar (a dashed box with a comment bubble) and drag a box; and that they press **Submit comments** when done. End your turn. Do not poll.
+Then tell the user, briefly: the URL; that they select text to comment on it; that for a figure, table or equation they press the area button in the top bar (a dashed box with a comment bubble) and drag a box; and that they press **Submit comments** when done. If they would like the paper read to them, the speaker button in the top bar reads it aloud and highlights the sentence and word being spoken; right-clicking a page starts the reading there. End your turn. Do not poll.
 
 If no local server can run or be reached from the user's browser (some sandboxes), build the page alone. The command prints the page's path, which you give the user to open directly:
 
@@ -75,3 +75,4 @@ Nothing is written into the user's project. Working files live in a folder for t
 - After Submit the folder holds only `feedback.md`, `feedback.json` and the `region-N.png` images. If the server is stopped before Submit, the folder is removed.
 - Folders of other reviews that have not been touched for a week are removed when a new review starts, and the operating system clears its temporary folder as usual.
 - To remove a review's files as soon as you are done with them: `python3 scripts/review_server.py clean "<pdf>"`.
+- Reading aloud downloads a voice model (about 330 MB) the first time it is used. The server keeps it in `~/.cache/pdf-human-review/voice` so it is downloaded once. Leave it there unless the user asks to remove it; `clean --voice` does that.

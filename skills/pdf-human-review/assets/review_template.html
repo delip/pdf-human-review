@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-{{NONCE}}' https://cdn.jsdelivr.net blob:; worker-src blob:; style-src 'unsafe-inline'; font-src data: blob:; img-src data: blob:; connect-src 'self' https://cdn.jsdelivr.net data: blob:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-{{NONCE}}' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; worker-src blob: https://cdn.jsdelivr.net; style-src 'unsafe-inline'; font-src data: blob:; img-src data: blob:; connect-src 'self' https://cdn.jsdelivr.net https://huggingface.co https://*.huggingface.co https://*.hf.co data: blob:; base-uri 'none'; form-action 'none'">
 <title>Review · {{TITLE}}</title>
 <style>
 :root {
@@ -31,34 +31,47 @@
 #theme-btn .moon, :root[data-theme="dark"] #theme-btn .sun { display: none; }
 :root[data-theme="dark"] #theme-btn .moon { display: inline; }
 * { box-sizing: border-box; }
-html { scroll-padding-top: 84px; }
+html { scroll-padding-top: 96px; }
 body { margin: 0; background: var(--bg); color: var(--ink);
   font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 button { font: inherit; cursor: pointer; }
 
-.topbar { position: sticky; top: 0; z-index: 20; display: flex; gap: 10px 14px; align-items: center; flex-wrap: wrap;
-  padding: 12px 24px; min-height: 64px; background: var(--bar); border-bottom: 1px solid var(--rule); }
-.topbar strong { font-weight: 600; font-size: 17px; overflow-wrap: anywhere; flex: 1 1 160px; }
+/* The top bar has two lines: the file name, then one toolbar whose buttons sit in groups (pages, reading aloud,
+   zoom, comments). The light/dark toggle stands alone at the right edge. The space between groups is wider than the space between the buttons of a group. */
+.topbar { position: sticky; top: 0; z-index: 20; background: var(--bar); border-bottom: 1px solid var(--rule); }
+.titlebar { padding: 5px 20px 0; font-size: 13px; line-height: 18px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.titlebar strong { font-weight: 600; }
+.toolrow { display: flex; align-items: center; padding: 6px 20px 8px 12px; }
+.toolbar { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 20px; padding-right: 12px; }
+#theme-btn { flex: 0 0 auto; }                         /* on its own at the right, not part of any group */
+.group { display: flex; align-items: center; gap: 4px; border-radius: 20px; }
+/* each group has a handle; dragging it moves the group to another place in the toolbar */
+.grip { width: 14px; height: 30px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--muted); opacity: .55;
+  display: inline-flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; }
+.grip:hover, .grip:focus-visible { opacity: 1; background: var(--bg); outline: none; }
+.group.dragging { background: var(--bg); box-shadow: 0 0 0 1.5px var(--accent); }
+.group.dragging .grip, body.grabbing, body.grabbing * { cursor: grabbing !important; }
+.toolrow .btn { width: 36px; height: 36px; padding: 0; border-radius: 18px; font-size: 18px; display: inline-flex; align-items: center; justify-content: center; }
+.toolrow .btn:disabled { opacity: .35; cursor: default; background: transparent; }
 .tipbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 35; display: flex; align-items: center; gap: 16px;
   padding: 8px 24px; background: var(--bar); border-top: 1px solid var(--rule); color: var(--muted); font-size: 13px; }
 .tipbar #hint { flex: 1 1 auto; min-width: 0; cursor: pointer; }
-.tools { display: flex; gap: 8px; align-items: center; }
-.tools .btn { min-width: 40px; height: 40px; font-size: 18px; border-radius: 20px; justify-content: center; }
+.tipbar #hint { flex: 1 1 auto; min-width: 0; cursor: pointer; }
 .btn { border: 1px solid var(--rule); background: transparent; color: var(--ink); border-radius: 16px; padding: 4px 12px; font-size: 13px; }
 .btn:hover { background: var(--bg); }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
 .btn.primary:disabled { opacity: .45; cursor: default; }
-.tools .btn:disabled, .pager .btn:disabled { opacity: .35; cursor: default; background: transparent; }
-.pager { display: flex; align-items: center; gap: 4px; }
-.pager .btn { width: 34px; height: 34px; padding: 0; border-radius: 17px; display: inline-flex; align-items: center; justify-content: center; }
-#page-input { width: 46px; height: 34px; margin-left: 4px; text-align: center; font: inherit; font-variant-numeric: tabular-nums; color: var(--ink);
+.reader .pause, .reader.playing .play { display: none; }
+.reader.playing .pause { display: inline; }
+.reader.loading #read-play { animation: rd-pulse 1s ease-in-out infinite; }
+@keyframes rd-pulse { 50% { opacity: .35; } }
+#page-input { width: 46px; height: 36px; margin-left: 4px; text-align: center; font: inherit; font-variant-numeric: tabular-nums; color: var(--ink);
   background: var(--bg); border: 1px solid var(--rule); border-radius: 8px; }
 #page-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .page-of { color: var(--muted); font-size: 14px; margin-right: 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .btn.danger { color: var(--danger); }
 .btn { --btn-bg: var(--bar); }
 .btn:hover { --btn-bg: var(--bg); }
-.btn.icon { padding: 0 12px; display: inline-flex; align-items: center; border-color: var(--ink); }
 .btn[aria-pressed="true"], .btn[aria-pressed="true"]:hover { background: var(--box); border-color: var(--box); color: #fff; --btn-bg: var(--box); }
 #zoom-label { font-size: 14px; color: var(--muted); min-width: 44px; text-align: center; font-variant-numeric: tabular-nums; }
 
@@ -74,6 +87,25 @@ button { font: inherit; cursor: pointer; }
 .hl.on { background: var(--hl-active); }
 .hl.region { background: rgba(255, 213, 79, .14); outline: 2px solid var(--box); outline-offset: -1px; }
 .hl.region.on { background: rgba(255, 170, 0, .22); outline-width: 3px; }
+/* read-along: the sentence being read, and the word within it */
+.rd-layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.rd-sent, .rd-word { position: absolute; mix-blend-mode: multiply; border-radius: 3px; }
+.rd-sent { background: rgba(255, 236, 61, .42); }
+.rd-word { background: rgba(255, 196, 0, .8); outline: 1.5px solid rgba(214, 140, 0, .9); }
+#ctx { position: fixed; z-index: 70; min-width: 190px; padding: 5px; background: var(--card); border: 1px solid var(--rule);
+  border-radius: 10px; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+#ctx[hidden] { display: none; }
+#speed-pop { position: fixed; z-index: 70; width: 250px; padding: 12px 14px 10px; background: var(--card); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 12px; box-shadow: var(--shadow); font-size: 13px; }
+#speed-pop[hidden] { display: none; }
+.speed-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.speed-head output { font-weight: 600; font-size: 15px; font-variant-numeric: tabular-nums; }
+#speed-range { width: 100%; margin: 0; accent-color: var(--accent); }
+.speed-scale { display: flex; justify-content: space-between; margin: 4px -6px 0; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.speed-scale span { width: 34px; text-align: center; }
+#read-speed[aria-expanded="true"] { background: var(--bg); border-color: var(--ink); }
+#ctx button { text-align: left; border: 0; background: transparent; color: var(--ink); padding: 7px 10px; border-radius: 6px; font-size: 14px; }
+#ctx button:hover, #ctx button:focus-visible { background: var(--bg); outline: none; }
 .draw { position: absolute; z-index: 3; border: 2px dashed var(--box); background: rgba(255, 170, 0, .12); pointer-events: none; }
 .textLayer { position: absolute; inset: 0; z-index: 2; overflow: hidden; line-height: 1; text-align: initial;
   -webkit-text-size-adjust: none; text-size-adjust: none; forced-color-adjust: none; transform-origin: 0 0; }
@@ -148,63 +180,100 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
 </head>
 <body>
 <header class="topbar">
-  <strong>{{TITLE}}</strong>
-  <div class="pager" role="group" aria-label="Page navigation">
-    <button class="btn" id="page-first" aria-label="First page" title="First page">
+  <div class="titlebar"><strong>{{TITLE}}</strong></div>
+  <div class="toolrow">
+  <div class="toolbar" id="toolbar" role="toolbar" aria-label="Review tools">
+    <div class="group reader" data-group="read" role="group" aria-label="Read aloud" id="reader">
+      <button class="grip" aria-label="Move the read aloud group. Drag it, or press the left and right arrow keys." title="Drag to rearrange the toolbar">
+        <svg viewBox="0 0 10 20" width="10" height="20" aria-hidden="true" fill="currentColor"><circle cx="3" cy="5" r="1.2"/><circle cx="7" cy="5" r="1.2"/><circle cx="3" cy="10" r="1.2"/><circle cx="7" cy="10" r="1.2"/><circle cx="3" cy="15" r="1.2"/><circle cx="7" cy="15" r="1.2"/></svg>
+      </button>
+      <button class="btn" id="read-play" aria-label="Read aloud" title="Read aloud: starts at the top of this page, or continues where you stopped">
+      <svg class="play" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3.5 9.5v5h3.2l4.3 3.6V5.9L6.7 9.5z" fill="currentColor"/><path d="M14.8 9a4.2 4.2 0 0 1 0 6"/><path d="M17.6 6.4a8 8 0 0 1 0 11.2"/>
+      </svg>
+      <svg class="pause" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><rect x="6.2" y="5" width="4" height="14" rx="1.2"/><rect x="13.8" y="5" width="4" height="14" rx="1.2"/></svg>
+    </button>
+      <button class="btn" id="read-speed" aria-haspopup="true" aria-expanded="false" aria-label="Reading speed" title="Reading speed">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4.6 14.6a6.6 6.4 0 0 1 13.2 0z" fill="currentColor" fill-opacity=".18"/>
+        <path d="M11.2 8.3v6.3M7.6 10.2l2 4.4M14.8 10.2l-2 4.4" stroke-width="1.1"/>
+        <circle cx="20.2" cy="12.4" r="1.9"/>
+        <path d="M7.6 14.6v2.9M14.8 14.6v2.9M4.6 14.6l-2 1.1"/>
+      </svg>
+    </button>
+      <button class="btn" id="read-stop" disabled aria-label="Stop reading" title="Stop reading (S)">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1.8"/></svg>
+    </button>
+    </div>
+    <div class="group pager" data-group="pages" role="group" aria-label="Page navigation">
+      <button class="grip" aria-label="Move the page navigation group. Drag it, or press the left and right arrow keys." title="Drag to rearrange the toolbar">
+        <svg viewBox="0 0 10 20" width="10" height="20" aria-hidden="true" fill="currentColor"><circle cx="3" cy="5" r="1.2"/><circle cx="7" cy="5" r="1.2"/><circle cx="3" cy="10" r="1.2"/><circle cx="7" cy="10" r="1.2"/><circle cx="3" cy="15" r="1.2"/><circle cx="7" cy="15" r="1.2"/></svg>
+      </button>
+      <button class="btn" id="page-first" aria-label="First page" title="First page">
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><rect x="5" y="5" width="2.4" height="14" rx="1"/><path d="M19 5.6v12.8a.8.8 0 0 1-1.25.66L9 12.66a.8.8 0 0 1 0-1.32l8.75-6.4A.8.8 0 0 1 19 5.6z"/></svg>
     </button>
-    <button class="btn" id="page-prev" aria-label="Previous page" title="Previous page">
+      <button class="btn" id="page-prev" aria-label="Previous page" title="Previous page">
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d="M17 5.6v12.8a.8.8 0 0 1-1.25.66L7 12.66a.8.8 0 0 1 0-1.32l8.75-6.4A.8.8 0 0 1 17 5.6z"/></svg>
     </button>
-    <input id="page-input" type="text" inputmode="numeric" autocomplete="off" value="1" aria-label="Page number" title="Type a page number and press Enter">
-    <span class="page-of">/ <span id="page-count">1</span></span>
-    <button class="btn" id="page-next" aria-label="Next page" title="Next page">
+      <input id="page-input" type="text" inputmode="numeric" autocomplete="off" value="1" aria-label="Page number" title="Type a page number and press Enter">
+      <span class="page-of">/ <span id="page-count">1</span></span>
+      <button class="btn" id="page-next" aria-label="Next page" title="Next page">
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d="M7 5.6v12.8a.8.8 0 0 0 1.25.66L17 12.66a.8.8 0 0 0 0-1.32L8.25 4.94A.8.8 0 0 0 7 5.6z"/></svg>
     </button>
-    <button class="btn" id="page-last" aria-label="Last page" title="Last page">
+      <button class="btn" id="page-last" aria-label="Last page" title="Last page">
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><rect x="16.6" y="5" width="2.4" height="14" rx="1"/><path d="M5 5.6v12.8a.8.8 0 0 0 1.25.66L15 12.66a.8.8 0 0 0 0-1.32L6.25 4.94A.8.8 0 0 0 5 5.6z"/></svg>
     </button>
-  </div>
-  <div class="tools">
-    <button class="btn icon" id="region-btn" aria-pressed="false" aria-label="Comment on an area" title="Comment on an area: drag a box around a figure, table or equation (or hold Alt and drag)">
-      <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+    </div>
+    <div class="group" data-group="zoom" role="group" aria-label="Zoom">
+      <button class="grip" aria-label="Move the zoom group. Drag it, or press the left and right arrow keys." title="Drag to rearrange the toolbar">
+        <svg viewBox="0 0 10 20" width="10" height="20" aria-hidden="true" fill="currentColor"><circle cx="3" cy="5" r="1.2"/><circle cx="7" cy="5" r="1.2"/><circle cx="3" cy="10" r="1.2"/><circle cx="7" cy="10" r="1.2"/><circle cx="3" cy="15" r="1.2"/><circle cx="7" cy="15" r="1.2"/></svg>
+      </button>
+      <button class="btn" id="zoom-out" aria-label="Zoom out" title="Zoom out (−)">−</button>
+      <span id="zoom-label">100%</span>
+      <button class="btn" id="zoom-in" aria-label="Zoom in" title="Zoom in (+)">+</button>
+    </div>
+    <div class="group" data-group="comments" role="group" aria-label="Comments">
+      <button class="grip" aria-label="Move the comments group. Drag it, or press the left and right arrow keys." title="Drag to rearrange the toolbar">
+        <svg viewBox="0 0 10 20" width="10" height="20" aria-hidden="true" fill="currentColor"><circle cx="3" cy="5" r="1.2"/><circle cx="7" cy="5" r="1.2"/><circle cx="3" cy="10" r="1.2"/><circle cx="7" cy="10" r="1.2"/><circle cx="3" cy="15" r="1.2"/><circle cx="7" cy="15" r="1.2"/></svg>
+      </button>
+      <button class="btn icon" id="region-btn" aria-pressed="false" aria-label="Comment on an area" title="Comment on an area: drag a box around a figure, table or equation (or hold Alt and drag)">
+      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
         <rect x="2.5" y="3.5" width="15" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-dasharray="3 2.2" stroke-linecap="round"/>
         <path d="M12.5 10.5h8a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-3.2l-2.8 2.6v-2.6h-2a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z" fill="currentColor" stroke="var(--btn-bg)" stroke-width="1.6" stroke-linejoin="round" paint-order="stroke"/>
       </svg>
     </button>
-    <button class="btn icon" id="recent-btn" disabled aria-label="Go to the most recent comment" title="Go to the most recent comment, the one you added or edited last (R)">
-      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <button class="btn icon" id="recent-btn" disabled aria-label="Go to the most recent comment" title="Go to the most recent comment, the one you added or edited last (R)">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M4.5 4.5h15a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H11l-4.5 3.5V17h-2a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2z"/>
         <path d="M12 7.6v3.6l2.6 1.6"/>
       </svg>
     </button>
-    <button class="btn icon" id="last-btn" disabled aria-label="Go to the last comment in the document" title="Go to the last comment in the document, the one furthest down the pages (L)">
-      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <button class="btn icon" id="last-btn" disabled aria-label="Go to the last comment in the document" title="Go to the last comment in the document, the one furthest down the pages (L)">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M4.5 4.5h15a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H11l-4.5 3.5V17h-2a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2z"/>
         <path d="M12 7v4.8"/>
         <path d="M9.6 9.6 12 12l2.4-2.4"/>
         <path d="M9 14.4h6"/>
       </svg>
     </button>
-    <button class="btn icon" id="collapse-btn" aria-pressed="false" disabled aria-label="Collapse all comments" title="Collapse all comments to one line each; press again to expand (C)">
-      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+      <button class="btn icon" id="collapse-btn" aria-pressed="false" disabled aria-label="Collapse all comments" title="Collapse all comments to one line each; press again to expand (C)">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
         <path d="M7 4.5l5 5 5-5"/>
         <path d="M7 19.5l5-5 5 5"/>
         <path d="M4 12h16" stroke-dasharray="0.1 3.3"/>
       </svg>
     </button>
+    </div>
+  </div>
     <button class="btn icon" id="theme-btn" aria-label="Switch between light and dark mode" title="Switch between light and dark mode">
-      <svg class="sun" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <svg class="sun" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
         <circle cx="12" cy="12" r="4.2"/>
         <path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7 7 17M17 7l1.7-1.7"/>
       </svg>
-      <svg class="moon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+      <svg class="moon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
         <path d="M20 14.2A8.3 8.3 0 0 1 9.8 4a8.3 8.3 0 1 0 10.2 10.2z"/>
       </svg>
     </button>
-    <button class="btn" id="zoom-out" aria-label="Zoom out" title="Zoom out (−)">−</button>
-    <span id="zoom-label">100%</span>
-    <button class="btn" id="zoom-in" aria-label="Zoom in" title="Zoom in (+)">+</button>
   </div>
 </header>
 <div class="layout">
@@ -227,11 +296,18 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
       <dt><kbd>L</kbd></dt><dd>Go to the last comment in the document</dd>
       <dt><kbd>C</kbd></dt><dd>Collapse or expand all comments</dd>
       <dt><kbd>+</kbd> <kbd>−</kbd></dt><dd>Zoom in, zoom out</dd>
+      <dt><kbd>P</kbd></dt><dd>Read aloud, pause, resume</dd>
+      <dt><kbd>S</kbd></dt><dd>Stop reading</dd>
+      <dt><kbd>[</kbd> <kbd>]</kbd></dt><dd>Read slower, read faster (never below 1×)</dd>
       <dt><kbd>Alt</kbd> + drag</dt><dd>Box an area without pressing the area button</dd>
       <dt><kbd>⌘/Ctrl</kbd> <kbd>Enter</kbd></dt><dd>Save the comment you are writing</dd>
       <dt><kbd>Esc</kbd></dt><dd>Cancel the comment you are writing, or a box you are drawing</dd>
       <dt><kbd>?</kbd></dt><dd>Show or hide this help</dd>
     </dl>
+    <h2>Reading aloud</h2>
+    <p>Press the speaker button in the top bar to have the paper read to you, with the sentence and the word being spoken highlighted. Or right-click anywhere on a page and choose Read aloud from here. The same button pauses and resumes, the turtle button sets the reading speed, and the square button stops. The voice is generated on your computer. The first use downloads it, about 330 MB.</p>
+    <h2>Arranging the toolbar</h2>
+    <p>Each group of buttons in the toolbar has a dotted handle on its left. Drag the handle to move the group, or select the handle and press the left and right arrow keys. The arrangement is remembered.</p>
     <h2>Moving through the pages</h2>
     <p>Scroll with the mouse wheel or trackpad, or use the page controls in the top bar: first, previous, next and last page. To jump to a page, type its number in the box and press Enter.</p>
     <p class="help-close">Press <kbd>Esc</kbd> to close</p>
@@ -239,6 +315,16 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
 </div>
 
 <button id="pop" hidden>Comment</button>
+<div id="speed-pop" hidden role="dialog" aria-label="Reading speed">
+  <div class="speed-head"><span>Reading speed</span><output id="speed-value" for="speed-range">1×</output></div>
+  <input id="speed-range" type="range" min="1" max="2" step="0.25" value="1" list="speed-ticks" aria-label="Reading speed">
+  <datalist id="speed-ticks"><option value="1"></option><option value="1.25"></option><option value="1.5"></option><option value="1.75"></option><option value="2"></option></datalist>
+  <div class="speed-scale"><span>1×</span><span>1.25×</span><span>1.5×</span><span>1.75×</span><span>2×</span></div>
+</div>
+<div id="ctx" hidden role="menu">
+  <button id="ctx-read" role="menuitem">Read aloud from here</button>
+  <button id="ctx-copy" role="menuitem">Copy</button>
+</div>
 
 <dialog id="confirm">
   <h2 id="confirm-title">Submit comments?</h2>
@@ -330,12 +416,16 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
     try { await p.task.promise; } catch (e) { return; }
     if (p.rendered !== s) return;
     const tl = document.createElement('div'); tl.className = 'textLayer';
+    const divs = [];
     tl.style.setProperty('--scale-factor', s);
-    await pdfjsLib.renderTextLayer({ textContentSource: await textOf(p), container: tl, viewport: vp, textDivs: [] }).promise;
+    await pdfjsLib.renderTextLayer({ textContentSource: await textOf(p), container: tl, viewport: vp, textDivs: divs }).promise;
     if (p.rendered !== s) return;
     const hl = document.createElement('div'); hl.className = 'hl-layer';
-    p.el.replaceChildren(canvas, hl, tl);
+    const rd = document.createElement('div'); rd.className = 'rd-layer';
+    p.el.replaceChildren(canvas, hl, rd, tl);
+    p.divs = divs;                                      // one span per text item, in the order of the items
     paintHighlights(p);
+    paintReading(p);
   }
   const io = new IntersectionObserver((entries) => {
     for (const e of entries) if (e.isIntersecting) renderPage(pages[+e.target.dataset.page - 1]);
@@ -468,7 +558,7 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
   function setRegionMode(on) {
     regionMode = on; document.body.classList.toggle('region-mode', on);
     $('#region-btn').setAttribute('aria-pressed', on ? 'true' : 'false');
-    if (on) $('#hint').textContent = 'Drag a box around the figure, table or equation. Press Esc to cancel.'; else $('#hint').innerHTML = HINT;
+    if (on) $('#hint').textContent = 'Drag a box around the figure, table or equation. Press Esc to cancel.'; else $('#hint').innerHTML = readHint || HINT;
     if (on) { window.getSelection().removeAllRanges(); hidePop(); }
   }
   $('#region-btn').addEventListener('click', () => setRegionMode(!regionMode));
@@ -507,6 +597,8 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
   });
   document.addEventListener('keydown', (e) => {
     const help = $('#help');
+    if (e.key === 'Escape' && !$('#speed-pop').hidden) { $('#speed-pop').hidden = true; $('#read-speed').setAttribute('aria-expanded', 'false'); $('#read-speed').focus(); e.preventDefault(); return; }
+    if (e.key === 'Escape' && !$('#ctx').hidden) { $('#ctx').hidden = true; e.preventDefault(); return; }
     if (e.key === 'Escape' && !help.hidden) { help.hidden = true; e.preventDefault(); return; }
     if (e.key === 'Escape' && regionMode) setRegionMode(false);
     if ((e.metaKey || e.ctrlKey) && e.altKey && e.code === 'KeyM' && pending) { e.preventDefault(); pop.click(); return; }
@@ -524,6 +616,10 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
       case 'c': press('#collapse-btn'); break;
       case '+': case '=': press('#zoom-in'); break;
       case '-': case '_': case '−': press('#zoom-out'); break;
+      case 'p': press('#read-play'); break;
+      case 's': press('#read-stop'); break;
+      case '[': setSpeed(reader.speed - 0.25); e.preventDefault(); break;
+      case ']': setSpeed(reader.speed + 0.25); e.preventDefault(); break;
     }
   });
 
@@ -692,7 +788,7 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
     }, 120);
   });
   $('#help').addEventListener('click', () => { $('#help').hidden = true; });
-  $('#hint').addEventListener('click', () => { if (!regionMode) $('#help').hidden = false; });
+  $('#hint').addEventListener('click', () => { if (!regionMode && !readHint) $('#help').hidden = false; });
   pop.addEventListener('mousedown', (e) => e.preventDefault());
   pop.addEventListener('click', () => {
     if (!pending) return;
@@ -859,6 +955,577 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
     requestAnimationFrame(() => { pageTick = false; showCurrentPage(); });
   }, { passive: true });
   showCurrentPage();
+
+  // ---------- read aloud ----------
+  // Speech comes from Kokoro-82M (voice am_fenrir), run in this browser by kokoro-js inside a worker:
+  // on the GPU through WebGPU when the browser has it, otherwise on the CPU, which is slower.
+  // The model also reports how long each sound lasts, so the word highlight follows the audio.
+  const VOICE = 'am_fenrir', AHEAD = 2;               // AHEAD: sentences synthesized beyond the one being read
+  const WORKER_SRC = [
+    "let KokoroTTS = null, TextSplitterStream = null;",
+    "async function boot(base) {",
+    "  if (KokoroTTS) return;",
+    "  if (base) {",
+    "    // The review server keeps the voice files on disk and serves them from there, so they are downloaded once",
+    "    // for every review, port and browser. The browser's own copy would be per port, so it is switched off.",
+    "    const HF = 'https://huggingface.co/', real = self.fetch.bind(self);",
+    "    let local = true;",
+    "    self.fetch = async (input, init) => {",
+    "      const url = String(input && input.url || input);",
+    "      if (local && url.startsWith(HF)) {",
+    "        try { const r = await real(base + url.slice(HF.length).split('?')[0], init); if (r.ok || r.status === 404) return r; } catch (e) {}",
+    "        local = false;",
+    "      }",
+    "      return real(input, init);",
+    "    };",
+    "    const none = { match: async () => undefined, put: async () => {} };",
+    "    try { Object.defineProperty(self, 'caches', { value: { open: async () => none }, configurable: true }); } catch (e) {}",
+    "  }",
+    "  const lib = await import('https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js');",
+    "  KokoroTTS = lib.KokoroTTS; TextSplitterStream = lib.TextSplitterStream;",
+    "}",
+    "const MODEL = 'onnx-community/Kokoro-82M-v1.0-ONNX-timestamped';",
+    "let tts = null, durs = [], minGen = 0, chain = Promise.resolve();",
+    "async function speak(text, voice, speed) {",
+    "  durs = [];",
+    "  const sp = new TextSplitterStream(); sp.push(text); sp.close();",
+    "  const parts = [], chunks = []; let total = 0, rate = 24000;",
+    "  for await (const c of tts.stream(sp, { voice: voice, speed: speed || 1 })) {",
+    "    const a = c.audio.audio; rate = c.audio.sampling_rate;",
+    "    parts.push({ phonemes: c.phonemes, n: a.length, durs: durs[parts.length] || null }); chunks.push(a); total += a.length;",
+    "  }",
+    "  const samples = new Float32Array(total); let o = 0;",
+    "  for (const a of chunks) { samples.set(a, o); o += a.length; }",
+    "  return { samples: samples, rate: rate, parts: parts };",
+    "}",
+    "async function load(voice, base) {",
+    "  await boot(base);",
+    "  const tries = [];",
+    "  try { if (self.navigator && navigator.gpu && await navigator.gpu.requestAdapter()) tries.push(['webgpu', 'fp32']); } catch (e) {}",
+    "  tries.push(['wasm', 'q8']);",
+    "  let last = null;",
+    "  for (const t of tries) {",
+    "    try {",
+    "      tts = await KokoroTTS.from_pretrained(MODEL, { device: t[0], dtype: t[1], progress_callback: (p) => {",
+    "        if (p.status === 'progress' && /\\.onnx$/.test(p.file || '')) self.postMessage({ type: 'progress', loaded: p.loaded, total: p.total });",
+    "      } });",
+    "      const model = tts.model;",
+    "      tts.model = async (inputs) => { const out = await model(inputs); durs.push(out.durations ? Array.from(out.durations.data) : null); return out; };",
+    "      await speak('Ready.', voice, 1);                     // compiles the GPU shaders, so the first sentence is not late",
+    "      self.postMessage({ type: 'ready', device: t[0] }); return;",
+    "    } catch (e) { last = e; tts = null; }",
+    "  }",
+    "  throw last || new Error('the voice model could not be loaded');",
+    "}",
+    "self.onmessage = (e) => {",
+    "  const m = e.data;",
+    "  if (m.type === 'cancel') { minGen = m.gen; return; }",
+    "  chain = chain.then(async () => {",
+    "    try {",
+    "      if (m.type === 'load') return await load(m.voice, m.base);",
+    "      if (m.gen < minGen) return self.postMessage({ type: 'skipped', id: m.id });",
+    "      const r = await speak(m.text, m.voice, m.speed);",
+    "      self.postMessage({ type: 'audio', id: m.id, samples: r.samples, rate: r.rate, parts: r.parts }, [r.samples.buffer]);",
+    "    } catch (err) { self.postMessage({ type: 'error', id: m.id, message: String(err && err.message || err) }); }",
+    "  });",
+    "};",
+  ].join('\n');
+
+  const reader = { state: 'idle', gen: 0, pos: null, show: null, word: -1, clip: null, src: null, ctx: null,
+    speed: 1.5, worker: null, ready: null, device: null, jobs: new Map(), cache: new Map(), nextId: 1 };
+  let readHint = '';                                    // a reading status shown in the footer in place of the tip
+  const readerEl = $('#reader'), playBtn = $('#read-play'), stopBtn = $('#read-stop');
+  function setReadHint(text) {
+    readHint = text || '';
+    if (!regionMode) { if (readHint) $('#hint').textContent = readHint; else $('#hint').innerHTML = HINT; }
+  }
+  function setReadState(st) {
+    reader.state = st;
+    readerEl.classList.toggle('playing', st === 'playing' || st === 'loading');
+    readerEl.classList.toggle('loading', st === 'loading');
+    stopBtn.disabled = st === 'idle';
+    const label = st === 'playing' || st === 'loading' ? 'Pause reading' : st === 'paused' ? 'Resume reading'
+      : reader.pos ? 'Read aloud: continues where you stopped' : 'Read aloud: starts at the top of this page';
+    playBtn.title = label + ' (P)'; playBtn.setAttribute('aria-label', label);
+  }
+
+  // ----- the text of a page, as it will be read -----
+  // text: the page's words in reading order. map[k]: where character k came from ({it: text item, k: offset, len}),
+  // or null for a space added between lines. sents: the sentences, each with its words.
+  const ABBREV = /(?:\b(?:al|Fig|Figs|Eq|Eqs|Sec|Secs|Tab|vs|cf|etc|No|Dr|Prof|Ref|Refs|resp|approx|e\.g|i\.e)\.|\b[A-Z]\.)\s*$/;
+  async function readingText(p) {
+    if (p.read) return p.read;
+    const tc = await textOf(p), vp = p.page.getViewport({ scale: 1 });
+    let text = ''; const map = [], breaks = [0];
+    let prev = null, eol = false;
+    tc.items.forEach((it, i) => {
+      if (it.str === undefined) return;
+      if (!it.str.trim()) { if (it.hasEOL) eol = true; else if (it.str && text && !text.endsWith(' ')) { text += ' '; map.push(null); } return; }
+      const m = pdfjsLib.Util.transform(vp.transform, it.transform);
+      if (Math.abs(m[1]) > Math.abs(m[0])) return;      // rotated text, such as the arXiv stamp in the margin
+      const h = Math.hypot(m[2], m[3]), y = m[5];
+      if (prev && eol) {
+        // a new block starts where the type size changes or the line gap is wide: a heading, a caption, a footnote
+        const big = Math.max(h, prev.h);
+        const hard = Math.abs(h - prev.h) > 0.12 * big || y - prev.y > 1.9 * big;
+        if (!hard && /[A-Za-z]-$/.test(text) && /^[a-z]/.test(it.str)) { text = text.slice(0, -1); map.pop(); }   // a word hyphenated at the line end
+        else if (text && !text.endsWith(' ')) { text += ' '; map.push(null); }
+        if (hard) breaks.push(text.length);
+      }
+      eol = !!it.hasEOL; prev = { h, y };
+      for (let k = 0; k < it.str.length;) {
+        const cp = it.str.codePointAt(k), raw = String.fromCodePoint(cp), len = raw.length;
+        const out = /\s/.test(raw) ? ' ' : raw.normalize('NFKC');   // NFKC turns ligatures back into letters
+        for (const ch of out) {
+          if (ch === ' ' && (!text || text.endsWith(' '))) continue;
+          text += ch; map.push({ it: i, k, len });
+        }
+        k += len;
+      }
+    });
+    breaks.push(text.length);
+    const sents = [];
+    const seg = new Intl.Segmenter('en', { granularity: 'sentence' });
+    for (let b = 0; b + 1 < breaks.length; b++) {
+      const from = breaks[b], block = text.slice(from, breaks[b + 1]);
+      let spans = [];
+      for (const s of seg.segment(block)) {
+        const last = spans[spans.length - 1];
+        // the segmenter breaks after "et al." and "Fig."; join those back
+        if (last && (ABBREV.test(block.slice(last[0], last[1])) || /^[a-z]/.test(s.segment))) last[1] = s.index + s.segment.length;
+        else spans.push([s.index, s.index + s.segment.length]);
+      }
+      // the model takes about 500 sounds at a time, so a very long sentence is read in parts
+      const split = (a, z) => {
+        if (z - a <= 280) return [[a, z]];
+        const mid = (a + z) / 2; let cut = -1;
+        for (const re of [/[;:]\s/g, /,\s/g, /\s/g]) {
+          re.lastIndex = 0; let m;
+          const str = block.slice(a + 40, z - 40);
+          while ((m = re.exec(str))) { const at = a + 40 + m.index + m[0].length; if (cut < 0 || Math.abs(at - mid) < Math.abs(cut - mid)) cut = at; }
+          if (cut >= 0) break;
+        }
+        return cut < 0 ? [[a, z]] : [...split(a, cut), ...split(cut, z)];
+      };
+      spans = spans.flatMap(([a, z]) => split(a, z));
+      for (const [a, z] of spans) {
+        const str = block.slice(a, z);
+        if (!/[A-Za-z]{2}/.test(str)) continue;        // page numbers, table cells, stray symbols
+        // bracketed citation numbers such as [13, 7] are not read out
+        const silent = []; let m; const cite = /\[\s*\d+(?:\s*[,–-]\s*\d+)*\s*\]/g;
+        while ((m = cite.exec(str))) silent.push([m.index, m.index + m[0].length]);
+        const words = []; const tok = /\S+/g;
+        while ((m = tok.exec(str))) {
+          const lead = m[0].match(/^[^\p{L}\p{N}]*/u)[0].length, trail = m[0].match(/[^\p{L}\p{N}]*$/u)[0];
+          if (lead >= m[0].length) continue;            // punctuation only
+          const s0 = m.index, s1 = m.index + m[0].length;
+          if (silent.some(([x, y2]) => s0 >= x && s1 <= y2)) continue;
+          words.push({ a: from + a + s0 + lead, b: from + a + s1 - trail.length, str: m[0].slice(lead, m[0].length - trail.length), t0: 0, t1: 0 });
+        }
+        if (!words.length) continue;
+        let spoken = str; for (let q = silent.length - 1; q >= 0; q--) spoken = spoken.slice(0, silent[q][0]) + spoken.slice(silent[q][1]);
+        spoken = spoken.replace(/[∗*†‡§¶]/g, ' ').replace(/\s+/g, ' ').replace(/ ([,.;:!?])/g, '$1').trim();   // footnote marks, and the gap a citation left
+        sents.push({ a: from + a, b: from + z, text: spoken, words });
+      }
+    }
+    const first = new Map();
+    map.forEach((e, k) => { if (e && !first.has(e.it)) first.set(e.it, k); });
+    p.read = { text, map, sents, first };
+    return p.read;
+  }
+  async function normPos(pos) {                         // the first sentence at or after pos, or null at the end of the document
+    let { page, i } = pos;
+    while (page <= pages.length) {
+      const r = await readingText(pages[page - 1]);
+      if (i < r.sents.length) return { page, i };
+      page += 1; i = 0;
+    }
+    return null;
+  }
+  const nextPos = (pos) => normPos({ page: pos.page, i: pos.i + 1 });
+
+  // ----- where the words are on the page -----
+  function lineRects(p, a, b) {                         // characters a..b as rects, one per line, in fractions of the page
+    const R = p.read, box = p.el.getBoundingClientRect(), raw = [], range = document.createRange();
+    if (!p.divs || !p.divs.length || !p.divs[0].isConnected) return null;
+    for (let k = a; k < b;) {
+      const m = R.map[k]; if (!m) { k++; continue; }
+      let j = k; while (j + 1 < b && R.map[j + 1] && R.map[j + 1].it === m.it) j++;
+      const node = p.divs[m.it] && p.divs[m.it].firstChild, z = R.map[j];
+      if (node && node.nodeType === 3) {
+        try {
+          range.setStart(node, Math.min(m.k, node.length)); range.setEnd(node, Math.min(z.k + z.len, node.length));
+          for (const q of range.getClientRects()) if (q.width > 0.5 && q.height > 1) raw.push({ l: q.left, t: q.top, r: q.right, b: q.bottom });
+        } catch (e) { /* the page was redrawn meanwhile */ }
+      }
+      k = j + 1;
+    }
+    const lines = [];
+    for (const q of raw) {
+      const last = lines[lines.length - 1];
+      const overlap = last ? Math.min(last.b, q.b) - Math.max(last.t, q.t) : -1;
+      if (last && overlap > 0.5 * Math.min(last.b - last.t, q.b - q.t) && q.l - last.r < box.width * 0.05 && last.l - q.r < box.width * 0.05) {
+        last.l = Math.min(last.l, q.l); last.r = Math.max(last.r, q.r); last.t = Math.min(last.t, q.t); last.b = Math.max(last.b, q.b);
+      } else lines.push(q);
+    }
+    return lines.map((q) => ({ x: (q.l - box.left) / box.width, y: (q.t - box.top) / box.height, w: (q.r - q.l) / box.width, h: (q.b - q.t) / box.height }));
+  }
+  async function placeSentence(p, s) {                  // fill in s.rects and each word's rects; needs the page drawn
+    if (s.rects) return;
+    renderPage(p);
+    for (let n = 0; n < 60 && !(p.divs && p.divs.length && p.divs[0].isConnected); n++) await new Promise((r) => setTimeout(r, 50));
+    const rects = lineRects(p, s.a, s.b);
+    if (!rects) return;
+    s.rects = rects;
+    for (const w of s.words) w.rects = lineRects(p, w.a, w.b) || [];
+  }
+  function paintReading(p) {
+    const layer = p.el.querySelector('.rd-layer');
+    if (!layer) return;
+    layer.textContent = '';
+    const sh = reader.show;
+    if (!sh || sh.page !== p.n || !sh.s.rects) return;
+    const add = (r, cls, pad) => {
+      const d = document.createElement('div'); d.className = cls;
+      d.style.cssText = `left:calc(${r.x * 100}% - ${pad}px);top:calc(${r.y * 100}% - ${pad}px);width:calc(${r.w * 100}% + ${2 * pad}px);height:calc(${r.h * 100}% + ${2 * pad}px)`;
+      layer.appendChild(d);
+    };
+    for (const r of sh.s.rects) add(r, 'rd-sent', 2);
+    const w = sh.s.words[reader.word];
+    if (w && w.rects) for (const r of w.rects) add(r, 'rd-word', 1);
+  }
+  function clearReading() {
+    const sh = reader.show; reader.show = null; reader.word = -1;
+    if (sh) paintReading(pages[sh.page - 1]);
+  }
+  function keepInView(p, s) {
+    if (!s.rects || !s.rects.length) return;
+    const b = p.el.getBoundingClientRect(), r0 = s.rects[0], r1 = s.rects[s.rects.length - 1];
+    const top = b.top + r0.y * b.height, bottom = b.top + (r1.y + r1.h) * b.height;
+    const lo = $('.topbar').getBoundingClientRect().bottom + 24, hi = $('.tipbar').getBoundingClientRect().top - 60;
+    if (top >= lo && bottom <= hi) return;
+    window.scrollTo({ top: Math.max(0, window.scrollY + top - (lo + (hi - lo) * 0.3)), behavior: 'smooth' });
+  }
+
+  // ----- when each word is spoken -----
+  // Each part of a clip has the sounds the model spoke (one character each) and how long each lasted.
+  const PUNCT = /[;:,.!?¡¿—…"«»“”()]/;
+  function timeWords(words, clip) {
+    const sounds = [];                                  // the spoken words: {t0, t1, len}
+    let offset = 0, exact = true;
+    for (const part of clip.parts) {
+      const dur = part.n / clip.rate, ph = part.phonemes || '';
+      if (part.durs && part.durs.length === ph.length + 2) {
+        const total = part.durs.reduce((a, v) => a + v, 0) || 1, T = [0];
+        for (const d of part.durs) T.push(T[T.length - 1] + d / total * dur);
+        for (let i = 0; i < ph.length;) {
+          if (ph[i] === ' ') { i++; continue; }
+          let j = i; while (j < ph.length && ph[j] !== ' ') j++;
+          let e = j; while (e > i && PUNCT.test(ph[e - 1])) e--;
+          let s = i; while (s < e && PUNCT.test(ph[s])) s++;
+          if (e > s) sounds.push({ t0: offset + T[s + 1], t1: offset + T[e + 1], len: ph.slice(s, e).replace(/[ˈˌː]/g, '').length });
+          i = j;
+        }
+      } else exact = false;
+      offset += dur;
+    }
+    const wl = words.map((w) => /\d/.test(w.str) ? w.str.length * 4 : w.str.replace(/[^\p{L}\p{N}]/gu, '').length || 1);
+    const spread = (i, n, t0, t1) => {                  // share a time span among n words from word i, by their length
+      let sum = 0; for (let k = i; k < i + n; k++) sum += wl[k];
+      let t = t0;
+      for (let k = i; k < i + n; k++) { words[k].t0 = t; t += (t1 - t0) * wl[k] / sum; words[k].t1 = t; }
+    };
+    const W = words.length, S = sounds.length;
+    if (!exact || !S) { spread(0, W, Math.min(0.25, offset / 4), offset * 0.94); return 'sentence'; }
+    // The speech joins some words ("of the" is one spoken word) and splits others ("2017" is two), so match the
+    // written words to the spoken ones in order, letting a step take several of either, by how long each is.
+    const MOVES = [[1, 1], [2, 1], [3, 1], [1, 2], [1, 3], [1, 4], [1, 5]];
+    const cost = [], back = [];
+    for (let i = 0; i <= W; i++) { cost.push(new Float64Array(S + 1).fill(Infinity)); back.push(new Int8Array(S + 1).fill(-1)); }
+    cost[0][0] = 0;
+    for (let i = 0; i < W; i++) for (let j = 0; j < S; j++) {
+      if (cost[i][j] === Infinity) continue;
+      MOVES.forEach(([dw, ds], m) => {
+        if (i + dw > W || j + ds > S) return;
+        let lw = 0, ls = 0;
+        for (let k = 0; k < dw; k++) lw += wl[i + k];
+        for (let k = 0; k < ds; k++) ls += sounds[j + k].len;
+        const c = cost[i][j] + Math.abs(lw * 0.9 - ls) + (dw + ds - 2) * 1.5;
+        if (c < cost[i + dw][j + ds]) { cost[i + dw][j + ds] = c; back[i + dw][j + ds] = m; }
+      });
+    }
+    if (cost[W][S] === Infinity) { spread(0, W, sounds[0].t0, sounds[S - 1].t1); return 'sentence'; }
+    let plain = true;
+    for (let i = W, j = S; i > 0;) {
+      const [dw, ds] = MOVES[back[i][j]]; i -= dw; j -= ds;
+      if (dw + ds > 2) plain = false;
+      spread(i, dw, sounds[j].t0, sounds[j + ds - 1].t1);
+    }
+    return plain ? 'word' : 'aligned';                  // how the words were timed, for tests
+  }
+
+  // ----- the voice -----
+  function ensureVoice() {
+    if (reader.ready) return reader.ready;
+    reader.ready = new Promise((resolve, reject) => {
+      let w;
+      try { w = new Worker(URL.createObjectURL(new Blob([WORKER_SRC], { type: 'text/javascript' })), { type: 'module' }); }
+      catch (e) { reject(e); return; }
+      reader.worker = w;
+      w.onerror = (e) => { reject(new Error(e.message || 'the voice could not be started')); };
+      w.onmessage = (e) => {
+        const m = e.data;
+        if (m.type === 'progress') {
+          if (reader.state === 'loading' && m.total) setReadHint('Loading the voice: ' + Math.round(m.loaded / m.total * 100) + '% of ' + Math.round(m.total / 1e6) + ' MB. It is downloaded once and then kept on this computer.');
+          return;
+        }
+        if (m.type === 'ready') { reader.device = m.device; resolve(m.device); return; }
+        const job = reader.jobs.get(m.id);
+        if (!job) { if (m.type === 'error') reject(new Error(m.message)); return; }
+        reader.jobs.delete(m.id);
+        if (m.type === 'audio') job.resolve(m); else if (m.type === 'skipped') job.resolve(null); else job.reject(new Error(m.message));
+      };
+      w.postMessage({ type: 'load', voice: VOICE, base: location.protocol.startsWith('http') ? location.origin + '/voice/' : null });
+    });
+    reader.ready.catch(() => { reader.ready = null; if (reader.worker) reader.worker.terminate(); reader.worker = null; });
+    return reader.ready;
+  }
+  function clipFor(pos, gen) {                          // the audio of one sentence, synthesized once and kept until it is passed
+    const key = pos.page + ':' + pos.i;
+    if (reader.cache.has(key)) return reader.cache.get(key);
+    const pr = (async () => {
+      const s = (await readingText(pages[pos.page - 1])).sents[pos.i];
+      const m = await new Promise((resolve, reject) => {
+        const id = reader.nextId++;
+        reader.jobs.set(id, { resolve, reject });
+        reader.worker.postMessage({ type: 'speak', id, gen, text: s.text, voice: VOICE, speed: reader.speed });
+      });
+      if (!m) return null;
+      const buf = reader.ctx.createBuffer(1, m.samples.length, m.rate);
+      buf.getChannelData(0).set(m.samples);
+      const clip = { buf, rate: m.rate, parts: m.parts, s };
+      s.fit = timeWords(s.words, clip);
+      return clip;
+    })();
+    pr.catch(() => {});
+    reader.cache.set(key, pr);
+    return pr;
+  }
+  function haltAudio() {
+    reader.gen += 1;
+    if (reader.worker) reader.worker.postMessage({ type: 'cancel', gen: reader.gen });
+    if (reader.src) { reader.src.onended = null; try { reader.src.stop(); } catch (e) { /* not started */ } reader.src = null; }
+    reader.cache.clear(); reader.clip = null;
+    if (reader.ctx && reader.ctx.state === 'suspended') reader.ctx.resume();
+  }
+  function stopReading(atEnd) {
+    haltAudio(); clearReading();
+    if (atEnd) reader.pos = null;                       // the document is finished: the next start is the current page again
+    setReadHint(''); setReadState('idle');
+  }
+  async function readFrom(start) {
+    haltAudio();
+    const gen = reader.gen;
+    try {
+      if (!reader.ctx) reader.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      reader.ctx.resume();
+      setReadState('loading');
+      if (!reader.device) setReadHint('Getting the voice ready…');
+      const device = await ensureVoice();
+      if (gen !== reader.gen) return;
+      setReadHint(device === 'webgpu' ? '' : 'This browser has no WebGPU, so the voice is generated on the CPU and may pause between sentences.');
+      let pos = await normPos(start);
+      while (pos && gen === reader.gen) {
+        reader.pos = pos;
+        const want = clipFor(pos, gen);
+        let ahead = pos;                                // keep the next sentences' audio ready while this one is read
+        for (let k = 0; k < AHEAD && ahead; k++) { ahead = await nextPos(ahead); if (ahead) clipFor(ahead, gen); }
+        const clip = await want;
+        if (gen !== reader.gen || !clip) return;
+        const p = pages[pos.page - 1];
+        await placeSentence(p, clip.s);
+        if (gen !== reader.gen) return;
+        const before = reader.show;
+        reader.show = { page: pos.page, s: clip.s }; reader.word = -1; reader.clip = clip;
+        if (before && before.page !== pos.page) paintReading(pages[before.page - 1]);
+        paintReading(p); keepInView(p, clip.s);
+        if (reader.state === 'loading') setReadState('playing');
+        await new Promise((done) => {
+          const src = reader.ctx.createBufferSource();
+          src.buffer = clip.buf; src.connect(reader.ctx.destination);
+          src.onended = done; reader.src = src;
+          clip.at = reader.ctx.currentTime + 0.03; src.start(clip.at);
+          tick();
+        });
+        if (gen !== reader.gen) return;
+        reader.cache.delete(pos.page + ':' + pos.i);
+        pos = await nextPos(pos);
+      }
+      if (gen === reader.gen) stopReading(true);
+    } catch (e) {
+      if (gen !== reader.gen) return;
+      stopReading(false);
+      setReadHint('Reading aloud is not available: ' + (e && e.message ? e.message : e));
+    }
+  }
+  let ticking = false;
+  function tick() {                                     // move the word highlight along with the audio
+    if (ticking) return;
+    ticking = true;
+    const step = () => {
+      const clip = reader.clip, sh = reader.show;
+      if (!clip || !sh || reader.state === 'idle') { ticking = false; return; }
+      const t = reader.ctx.currentTime - clip.at, ws = sh.s.words;
+      let k = reader.word < 0 ? 0 : reader.word;
+      if (ws[k] && t < ws[k].t0) k = 0;
+      while (k + 1 < ws.length && t >= ws[k + 1].t0) k++;
+      if (t < ws[0].t0 - 0.05) k = -1;
+      if (k !== reader.word) { reader.word = k; paintReading(pages[sh.page - 1]); }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+  playBtn.addEventListener('click', () => {
+    if (reader.state === 'playing' || reader.state === 'loading') { reader.ctx.suspend(); setReadState('paused'); }
+    else if (reader.state === 'paused') { reader.ctx.resume(); setReadState('playing'); }
+    else readFrom(reader.pos || { page: currentPage, i: 0 });
+  });
+  stopBtn.addEventListener('click', () => stopReading(false));
+
+  // ----- reading speed: the baseline or faster, never slower -----
+  // The model speaks at the chosen speed itself, so a faster voice keeps its pitch.
+  const speedBtn = $('#read-speed'), speedPop = $('#speed-pop'), speedRange = $('#speed-range');
+  const speedText = (v) => String(v) + '×';
+  function showSpeed(v) {
+    speedRange.value = v; $('#speed-value').textContent = speedText(v);
+    speedBtn.title = 'Reading speed: ' + speedText(v) + ' ([ slower, ] faster)'; speedBtn.setAttribute('aria-label', 'Reading speed: ' + speedText(v));
+  }
+  function setSpeed(v) {
+    v = clamp(Math.round(Number(v) * 4) / 4 || 1, 1, 2);
+    showSpeed(v);
+    if (v === reader.speed) return;
+    reader.speed = v;
+    try { localStorage.setItem('phr:speed', String(v)); } catch (e) { /* the choice lasts for this page view only */ }
+    // audio already made is at the old speed: read the current sentence again at the new one
+    if (reader.state === 'playing' || reader.state === 'loading') readFrom(reader.pos || { page: currentPage, i: 0 });
+    else if (reader.state === 'paused') stopReading(false);
+  }
+  function toggleSpeedPop(open) {
+    speedPop.hidden = !open; speedBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (!open) return;
+    const b = speedBtn.getBoundingClientRect();
+    speedPop.style.left = clamp(b.left + b.width / 2 - speedPop.offsetWidth / 2, 8, window.innerWidth - speedPop.offsetWidth - 8) + 'px';
+    speedPop.style.top = b.bottom + 8 + 'px';
+    speedRange.focus();
+  }
+  speedBtn.addEventListener('click', () => toggleSpeedPop(speedPop.hidden));
+  speedRange.addEventListener('input', () => { $('#speed-value').textContent = speedText(Number(speedRange.value)); });
+  speedRange.addEventListener('change', () => setSpeed(speedRange.value));
+  document.addEventListener('mousedown', (e) => { if (!speedPop.hidden && !speedPop.contains(e.target) && !speedBtn.contains(e.target)) toggleSpeedPop(false); });
+  window.addEventListener('resize', () => toggleSpeedPop(false));
+  try { const saved = Number(localStorage.getItem('phr:speed')); if (saved >= 1 && saved <= 2) reader.speed = Math.round(saved * 4) / 4; } catch (e) { /* storage unavailable */ }
+  showSpeed(reader.speed);
+
+  // ----- right-click: read from here -----
+  const ctx = $('#ctx');
+  let ctxAt = null;
+  async function sentenceNear(p, x, y) {                // the sentence under the pointer, or the one whose text is nearest to it
+    const R = await readingText(p);
+    if (!R.sents.length || !p.divs) return 0;
+    let best = -1, bestD = Infinity, off = 0;
+    p.divs.forEach((d, i) => {
+      if (!R.first.has(i)) return;
+      const b = d.getBoundingClientRect(); if (!b.width || !b.height) return;
+      const dx = Math.max(b.left - x, 0, x - b.right), dy = Math.max(b.top - y, 0, y - b.bottom), dist = Math.hypot(dx, dy * 1.5);
+      if (dist < bestD) { bestD = dist; best = i; }
+    });
+    if (best < 0) return 0;
+    if (bestD === 0 && document.caretRangeFromPoint) {
+      const c = document.caretRangeFromPoint(x, y);
+      if (c && c.startContainer.parentNode === p.divs[best]) off = c.startOffset;
+    }
+    let k = R.first.get(best);
+    while (k + 1 < R.map.length && R.map[k + 1] && R.map[k + 1].it === best && R.map[k].k < off) k++;
+    let i = R.sents.findIndex((s) => k < s.b);
+    return i < 0 ? R.sents.length - 1 : i;
+  }
+  pagesEl.addEventListener('contextmenu', (e) => {
+    const el = e.target.closest('.page');
+    if (!el || regionMode) return;
+    e.preventDefault();
+    ctxAt = { p: pages[+el.dataset.page - 1], x: e.clientX, y: e.clientY };
+    const sel = window.getSelection();
+    $('#ctx-copy').hidden = !sel || sel.isCollapsed;
+    ctx.hidden = false;
+    ctx.style.left = clamp(e.clientX, 8, window.innerWidth - ctx.offsetWidth - 8) + 'px';
+    ctx.style.top = clamp(e.clientY, 8, window.innerHeight - ctx.offsetHeight - 8) + 'px';
+  });
+  const hideCtx = () => { ctx.hidden = true; };
+  ctx.addEventListener('mousedown', (e) => e.preventDefault());      // keep the text selection for Copy
+  document.addEventListener('mousedown', (e) => { if (!ctx.hidden && !ctx.contains(e.target)) hideCtx(); });
+  window.addEventListener('scroll', hideCtx, { passive: true });
+  window.addEventListener('blur', hideCtx);
+  $('#ctx-read').addEventListener('click', async () => {
+    hideCtx();
+    if (!ctxAt) return;
+    const at = ctxAt;
+    if (!reader.ctx) reader.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    reader.ctx.resume();                                // while the click still counts as the reader's own action
+    readFrom({ page: at.p.n, i: await sentenceNear(at.p, at.x, at.y) });
+  });
+  $('#ctx-copy').addEventListener('click', () => {
+    const text = String(window.getSelection());
+    hideCtx();
+    if (text) copyText(text);
+  });
+  setReadState('idle');
+
+  // ---------- rearranging the toolbar ----------
+  // Drag a group by its handle, or focus the handle and press the left and right arrow keys. The order is remembered.
+  const toolbar = $('#toolbar');
+  const groupOrder = () => [...toolbar.children].map((g) => g.dataset.group);
+  const saveOrder = () => { try { localStorage.setItem('phr:toolbar', JSON.stringify(groupOrder())); } catch (e) { /* lasts for this page view only */ } };
+  try {
+    const saved = JSON.parse(localStorage.getItem('phr:toolbar') || '[]');
+    if (Array.isArray(saved)) for (const key of saved) {              // groups not named in the saved order keep their place at the front
+      const g = [...toolbar.children].find((x) => x.dataset.group === key);
+      if (g) toolbar.appendChild(g);
+    }
+  } catch (e) { /* storage unavailable, or an unreadable value */ }
+  let moving = null;
+  toolbar.addEventListener('pointerdown', (e) => {
+    const grip = e.target.closest('.grip');
+    if (!grip || e.button !== 0) return;
+    e.preventDefault(); grip.focus();
+    moving = grip.parentElement; moving.classList.add('dragging'); document.body.classList.add('grabbing');
+    grip.setPointerCapture(e.pointerId);
+  });
+  toolbar.addEventListener('pointermove', (e) => {
+    if (!moving) return;
+    // the group under the pointer: the dragged one goes before it or after it, whichever half the pointer is over
+    const over = [...toolbar.children].find((g) => { const b = g.getBoundingClientRect(); return g !== moving && e.clientX >= b.left - 10 && e.clientX <= b.right + 10 && e.clientY >= b.top - 6 && e.clientY <= b.bottom + 6; });
+    if (!over) return;
+    const b = over.getBoundingClientRect(), after = e.clientX > b.left + b.width / 2;
+    const ref = after ? over.nextElementSibling : over;
+    if (ref !== moving && (after ? over : over.previousElementSibling) !== moving) toolbar.insertBefore(moving, ref);
+  });
+  const dropGroup = () => {
+    if (!moving) return;
+    moving.classList.remove('dragging'); document.body.classList.remove('grabbing'); moving = null;
+    saveOrder(); toggleSpeedPop(false);
+  };
+  toolbar.addEventListener('pointerup', dropGroup);
+  toolbar.addEventListener('pointercancel', dropGroup);
+  toolbar.addEventListener('keydown', (e) => {
+    const grip = e.target.closest && e.target.closest('.grip');
+    if (!grip || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+    e.preventDefault(); e.stopPropagation();
+    const g = grip.parentElement;
+    if (e.key === 'ArrowLeft' && g.previousElementSibling) toolbar.insertBefore(g, g.previousElementSibling);
+    else if (e.key === 'ArrowRight' && g.nextElementSibling) toolbar.insertBefore(g.nextElementSibling, g);
+    grip.focus(); saveOrder(); toggleSpeedPop(false);
+  });
+  window.phrRead = { reader, text: (n) => readingText(pages[n - 1]), clip: (page, i) => clipFor({ page, i }, reader.gen) };   // for tests
 
   window.phrReady = true;
 })();

@@ -19,8 +19,11 @@
       page copies it there when it cannot reach the server). Exits 1 if there
       is no feedback yet.
 
-  review_server.py clean [FILE.pdf]
+  review_server.py clean [FILE.pdf] [--voice]
       Removes the working files of that PDF's review, or of every review.
+      With --voice it also removes the read-aloud voice files (about 330 MB),
+      which are otherwise kept in the user's cache folder so that they are
+      downloaded only once.
 
 Standard library only.
 """
@@ -36,6 +39,8 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
+import urllib.request
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -46,6 +51,18 @@ from build_review import build, empty_dir, prune_stale, temp_root, work_dir
 DEFAULT_PORT = 47800
 MAX_BODY = 64 * 1024 * 1024
 HEADER_START, HEADER_END = "Feedback for ", " from human reviewer"
+
+# The read-aloud voice (Kokoro-82M) is fetched from Hugging Face once and kept on disk. The page asks this
+# server for the files, so every later review, on any port and in any browser, reads them from here.
+VOICE_SOURCE = "https://huggingface.co/"
+VOICE_PATH = re.compile(r"onnx-community/Kokoro-82M-v1\.0-ONNX(-timestamped)?/resolve/main/[A-Za-z0-9_][A-Za-z0-9_./-]*")
+voice_locks: dict = {}
+voice_locks_guard = threading.Lock()
+
+
+def voice_cache() -> Path:
+    base = os.environ.get("XDG_CACHE_HOME")
+    return (Path(base) if base else Path.home() / ".cache") / "pdf-human-review" / "voice"
 
 
 def looks_like_feedback(text: str) -> bool:
@@ -102,9 +119,71 @@ def serve(args) -> int:
         def do_GET(self):
             if not self._host_ok():
                 return self._send(403, b"forbidden")
-            if self.path.split("?")[0] in ("/", "/index.html", "/review.html"):
+            path = self.path.split("?")[0]
+            if path in ("/", "/index.html", "/review.html"):
                 return self._send(200, page, "text/html; charset=utf-8")
+            if path.startswith("/voice/"):
+                return self._voice(path[len("/voice/"):])
             self._send(404, b"not found")
+
+        def _voice(self, rel: str):
+            """Serve one voice file from the cache folder, downloading it there first if it is missing."""
+            if not VOICE_PATH.fullmatch(rel) or ".." in rel:
+                return self._send(404, b"not found")
+            target = voice_cache() / rel
+            ctype = "application/json" if rel.endswith(".json") else "application/octet-stream"
+            with voice_locks_guard:
+                lock = voice_locks.setdefault(rel, threading.Lock())
+            with lock:
+                if not target.is_file():
+                    try:
+                        up = urllib.request.urlopen(urllib.request.Request(VOICE_SOURCE + rel, headers={"User-Agent": "pdf-human-review"}), timeout=30)
+                    except urllib.error.HTTPError as e:
+                        return self._send(e.code, b"")
+                    except (urllib.error.URLError, OSError):
+                        return self._send(502, b"could not reach huggingface.co")
+                    length = up.headers.get("Content-Length")
+                    part = target.with_name(f"{target.name}.{os.getpid()}.part")
+                    part.parent.mkdir(parents=True, exist_ok=True)
+                    self.send_response(200)
+                    self.send_header("Content-Type", ctype)
+                    if length:
+                        self.send_header("Content-Length", length)
+                    self.send_header("Cache-Control", "no-store")
+                    self.end_headers()
+                    got, listening = 0, True
+                    try:
+                        with up, open(part, "wb") as f:
+                            while True:
+                                chunk = up.read(1 << 20)
+                                if not chunk:
+                                    break
+                                f.write(chunk)
+                                got += len(chunk)
+                                if listening:           # if the page goes away, still finish the download
+                                    try:
+                                        self.wfile.write(chunk)
+                                    except OSError:
+                                        listening = False
+                        if length and got != int(length):
+                            raise OSError("short download")
+                        os.replace(part, target)
+                    except OSError:
+                        try:
+                            part.unlink()
+                        except OSError:
+                            pass
+                    return
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(target.stat().st_size))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            try:
+                with open(target, "rb") as f:
+                    shutil.copyfileobj(f, self.wfile, 1 << 20)
+            except OSError:
+                pass
 
         def do_POST(self):
             if not self._host_ok() or self.path != "/submit":
@@ -238,6 +317,12 @@ def clean(args) -> int:
             temp_root().rmdir()
         except OSError:
             pass
+    if args.voice:
+        shutil.rmtree(voice_cache(), ignore_errors=True)
+        try:
+            voice_cache().parent.rmdir()
+        except OSError:
+            pass
     return 0
 
 
@@ -255,6 +340,7 @@ def main() -> int:
     p.set_defaults(fn=collect)
     p = sub.add_parser("clean")
     p.add_argument("pdf", type=Path, nargs="?", help="the PDF whose review files to remove (default: all reviews)")
+    p.add_argument("--voice", action="store_true", help="also remove the read-aloud voice files kept in the cache folder")
     p.set_defaults(fn=clean)
     args = ap.parse_args()
     return args.fn(args)

@@ -125,6 +125,21 @@ Copy the `skills/pdf-human-review/` folder into the agent's skills location agai
 
 `/pdf-human-review <file.pdf>` starts a review. Saying "I want to do a human review of this PDF" also works, and the agent asks before starting. One PDF is reviewed at a time. There is nothing to set up.
 
+## Reading aloud
+
+The review page can read the paper to you, which helps readers with dyslexia follow the text. While it reads, the sentence being spoken is highlighted, and so is the word within it.
+
+- Press the speaker button in the top bar to start. It starts at the top of the page you are on, or continues from where you last stopped. The same button pauses and resumes, and the square button stops and removes the highlight.
+- The turtle button between them opens a speed slider: 1×, 1.25×, 1.5×, 1.75× or 2×. The default is 1.5×. 1× is the voice's normal pace and there is no slower setting. The choice is remembered.
+- Keyboard: `P` starts, pauses and resumes, `S` stops, and `[` and `]` step the speed down and up.
+- Right-click anywhere on a page and choose **Read aloud from here** to start at that sentence. A click away from any text starts at the nearest text.
+
+The voice is [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) with the `am_fenrir` voice, run in the browser by [kokoro-js](https://www.npmjs.com/package/kokoro-js). Nothing is sent to a speech service. It runs on the GPU through WebGPU, and the audio of the next two sentences is prepared while the current one is read. In a browser without WebGPU it falls back to the CPU, which is slower than speech, so expect pauses between sentences.
+
+The first use downloads the voice from Hugging Face, about 330 MB. The review server keeps it in `~/.cache/pdf-human-review/voice` (or under `$XDG_CACHE_HOME`) and serves it from there, so later reviews do not download it again.
+
+The reading follows the PDF's own text order. It skips bracketed citation numbers such as `[13]`. Formulas, tables and author blocks are read as they appear in the text layer, which can sound odd.
+
 ## How it works
 
 | File | Job |
@@ -134,7 +149,7 @@ Copy the `skills/pdf-human-review/` folder into the agent's skills location agai
 | `scripts/build_review.py` | Embeds the PDF in the review page, giving one self-contained HTML file. |
 | `assets/review_template.html` | The page and its commenting UI. |
 
-The scripts use only the Python standard library. The page loads PDF.js 3.11 from jsDelivr, so the reviewer's browser needs an internet connection.
+The scripts use only the Python standard library. The page loads PDF.js 3.11 from jsDelivr, and kokoro-js when reading aloud is first used, so the reviewer's browser needs an internet connection.
 
 If the page cannot reach the local server, Submit copies the feedback to the clipboard, and the agent reads it from there when the reviewer says they have submitted.
 
@@ -146,6 +161,7 @@ Nothing is written into your project. Working files for a review go in a folder 
 - After Submit the folder holds only `feedback.md`, `feedback.json` and one `region-N.png` per boxed area, which the agent opens to see what was boxed. If the server is stopped before Submit, the folder is removed.
 - Folders of other reviews untouched for a week are removed when a new review starts, and the operating system clears its temporary folder as usual.
 - `python3 scripts/review_server.py clean` removes everything at once.
+- The read-aloud voice is the one thing kept outside the temporary folder, in `~/.cache/pdf-human-review/voice`, so that it is downloaded once. `python3 scripts/review_server.py clean --voice` removes it too.
 
 ## Development
 
