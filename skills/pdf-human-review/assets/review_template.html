@@ -88,10 +88,11 @@ button { font: inherit; cursor: pointer; }
 .hl.region { background: rgba(255, 213, 79, .14); outline: 2px solid var(--box); outline-offset: -1px; }
 .hl.region.on { background: rgba(255, 170, 0, .22); outline-width: 3px; }
 /* read-along: the sentence being read, and the word within it */
-.rd-layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
-.rd-sent, .rd-word { position: absolute; mix-blend-mode: multiply; border-radius: 3px; }
-.rd-sent { background: rgba(255, 236, 61, .42); }
-.rd-word { background: rgba(255, 196, 0, .8); outline: 1.5px solid rgba(214, 140, 0, .9); }
+/* the layer as a whole is multiplied onto the page, so the text under a highlight stays black */
+.rd-layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; mix-blend-mode: multiply; }
+.rd-sent, .rd-word { position: absolute; border-radius: 3px; }
+.rd-sent { background: rgba(255, 236, 61, .6); }
+.rd-word { background: rgb(255, 196, 0); outline: 1.5px solid rgb(214, 140, 0); }
 #ctx { position: fixed; z-index: 70; min-width: 190px; padding: 5px; background: var(--card); border: 1px solid var(--rule);
   border-radius: 10px; box-shadow: var(--shadow); display: flex; flex-direction: column; }
 #ctx[hidden] { display: none; }
@@ -1065,14 +1066,15 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
       if (Math.abs(m[1]) > Math.abs(m[0])) return;      // rotated text, such as the arXiv stamp in the margin
       const h = Math.hypot(m[2], m[3]), y = m[5];
       if (prev && eol) {
-        // a new block starts where the type size changes or the line gap is wide: a heading, a caption, a footnote
-        const big = Math.max(h, prev.h);
-        const hard = Math.abs(h - prev.h) > 0.12 * big || y - prev.y > 1.9 * big;
+        // a new block starts where the type size changes or the line gap is wide: a heading, a caption, a footnote.
+        // A heading set in the body's size is caught by its different font together with the extra space after it.
+        const big = Math.max(h, prev.h), dy = y - prev.y;
+        const hard = Math.abs(h - prev.h) > 0.12 * big || dy > 1.9 * big || (it.fontName !== prev.font && dy > 1.35 * big);
         if (!hard && /[A-Za-z]-$/.test(text) && /^[a-z]/.test(it.str)) { text = text.slice(0, -1); map.pop(); }   // a word hyphenated at the line end
         else if (text && !text.endsWith(' ')) { text += ' '; map.push(null); }
         if (hard) breaks.push(text.length);
       }
-      eol = !!it.hasEOL; prev = { h, y };
+      eol = !!it.hasEOL; prev = { h, y, font: it.fontName };
       for (let k = 0; k < it.str.length;) {
         const cp = it.str.codePointAt(k), raw = String.fromCodePoint(cp), len = raw.length;
         const out = /\s/.test(raw) ? ' ' : raw.normalize('NFKC');   // NFKC turns ligatures back into letters
@@ -1185,14 +1187,14 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
     layer.textContent = '';
     const sh = reader.show;
     if (!sh || sh.page !== p.n || !sh.s.rects) return;
-    const add = (r, cls, pad) => {
+    const add = (r, cls, px, py) => {                   // px, py: a little room around the text
       const d = document.createElement('div'); d.className = cls;
-      d.style.cssText = `left:calc(${r.x * 100}% - ${pad}px);top:calc(${r.y * 100}% - ${pad}px);width:calc(${r.w * 100}% + ${2 * pad}px);height:calc(${r.h * 100}% + ${2 * pad}px)`;
+      d.style.cssText = `left:calc(${r.x * 100}% - ${px}px);top:calc(${r.y * 100}% - ${py}px);width:calc(${r.w * 100}% + ${2 * px}px);height:calc(${r.h * 100}% + ${2 * py}px)`;
       layer.appendChild(d);
     };
-    for (const r of sh.s.rects) add(r, 'rd-sent', 2);
+    for (const r of sh.s.rects) add(r, 'rd-sent', 2, 2);
     const w = sh.s.words[reader.word];
-    if (w && w.rects) for (const r of w.rects) add(r, 'rd-word', 1);
+    if (w && w.rects) for (const r of w.rects) add(r, 'rd-word', 3, 1);   // wider: letters inside a line are placed approximately
   }
   function clearReading() {
     const sh = reader.show; reader.show = null; reader.word = -1;
@@ -1525,7 +1527,11 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
     else if (e.key === 'ArrowRight' && g.nextElementSibling) toolbar.insertBefore(g.nextElementSibling, g);
     grip.focus(); saveOrder(); toggleSpeedPop(false);
   });
-  window.phrRead = { reader, text: (n) => readingText(pages[n - 1]), clip: (page, i) => clipFor({ page, i }, reader.gen) };   // for tests
+  window.phrRead = { reader, text: (n) => readingText(pages[n - 1]), clip: (page, i) => clipFor({ page, i }, reader.gen),
+    show: async (page, i, word) => {                    // draw the highlight for one sentence and word, without audio
+      const p = pages[page - 1], s = (await readingText(p)).sents[i];
+      await placeSentence(p, s); reader.show = { page, s }; reader.word = word; paintReading(p);
+    } };   // for tests
 
   window.phrReady = true;
 })();

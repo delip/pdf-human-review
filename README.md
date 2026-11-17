@@ -2,7 +2,7 @@
 
 A plugin that lets a person review a PDF in the browser and hand their comments back to the agent that asked.
 
-![The review page: a PDF page with a boxed figure and several highlighted sentences. One comment is open beside its sentence and the crowded ones are collapsed to a single line.](docs/screenshot.png)
+![The review page: a toolbar with read-aloud, page, zoom and comment controls above a PDF page. A figure is boxed and several sentences carry comments, shown in the margin. One sentence is being read aloud and is highlighted, with the current word marked.](docs/screenshot.png)
 
 The review page shows the PDF itself, drawn by PDF.js. The reviewer selects text, or presses the area button and drags a box around a figure, table or equation, and writes a comment in the margin. Comments can be edited and deleted. Pressing **Submit comments** sends them to the agent:
 
