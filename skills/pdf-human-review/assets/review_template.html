@@ -41,9 +41,9 @@ button { font: inherit; cursor: pointer; }
 .topbar { position: sticky; top: 0; z-index: 20; background: var(--bar); border-bottom: 1px solid var(--rule); }
 .titlebar { padding: 5px 20px 0; font-size: 13px; line-height: 18px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .titlebar strong { font-weight: 600; }
-.toolrow { display: flex; align-items: center; padding: 6px 20px 8px 12px; }
-.toolbar { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 20px; padding-right: 12px; }
-#theme-btn { flex: 0 0 auto; }                         /* on its own at the right, not part of any group */
+.toolrow { display: flex; align-items: center; padding: 6px 20px 8px 20px; }
+.toolbar { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 20px; padding: 0 12px; }
+#theme-btn, #back { flex: 0 0 auto; }                  /* on their own at the two ends, not part of any group */
 .group { display: flex; align-items: center; gap: 4px; border-radius: 20px; }
 /* each group has a handle; dragging it moves the group to another place in the toolbar */
 .grip { width: 14px; height: 30px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--muted); opacity: .55;
@@ -107,6 +107,9 @@ button { font: inherit; cursor: pointer; }
 #read-speed[aria-expanded="true"] { background: var(--bg); border-color: var(--ink); }
 #ctx button { text-align: left; border: 0; background: transparent; color: var(--ink); padding: 7px 10px; border-radius: 6px; font-size: 14px; }
 #ctx button:hover, #ctx button:focus-visible { background: var(--bg); outline: none; }
+.lk-hover { position: absolute; z-index: 1; pointer-events: none; border-radius: 2px; background: rgba(26, 95, 180, .12); box-shadow: 0 1.5px 0 rgba(26, 95, 180, .8); }
+.page.on-link .textLayer, .page.on-link .textLayer span { cursor: pointer; }
+body.region-mode .lk-hover { display: none; }
 .draw { position: absolute; z-index: 3; border: 2px dashed var(--box); background: rgba(255, 170, 0, .12); pointer-events: none; }
 .textLayer { position: absolute; inset: 0; z-index: 2; overflow: hidden; line-height: 1; text-align: initial;
   -webkit-text-size-adjust: none; text-size-adjust: none; forced-color-adjust: none; transform-origin: 0 0; }
@@ -146,13 +149,24 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border: 1px soli
 #help { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 24px;
   background: rgba(12, 13, 15, .86); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); color: #f2f0ea; overflow-y: auto; }
 #help[hidden] { display: none; }
-.help-panel { width: min(560px, 100%); margin: auto; }
-.help-panel h2 { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #b9b4a8; margin: 0 0 10px; }
-.help-panel h2:not(:first-child) { margin-top: 28px; }
-.help-panel p { font-size: 17px; line-height: 1.5; margin: 0; }
-.help-panel dl { display: grid; grid-template-columns: max-content 1fr; gap: 10px 20px; margin: 0; font-size: 16px; align-items: baseline; }
+.help-panel { width: min(960px, 100%); margin: auto; }
+.help-panel h2 { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #b9b4a8; margin: 0 0 8px; }
+.help-panel p { font-size: 14.5px; line-height: 1.5; margin: 0; }
+.help-panel p + p { margin-top: 8px; }
+/* two columns, filled top to bottom: commenting keys on the left, the rest on the right */
+.help-panel dl { display: grid; grid-auto-flow: column; grid-template-rows: repeat(6, auto); grid-template-columns: 1fr 1fr; gap: 9px 48px; margin: 0; font-size: 15px; }
+.help-panel dl > div { display: grid; grid-template-columns: 124px 1fr; gap: 14px; align-items: baseline; }
 .help-panel dt { white-space: nowrap; } .help-panel dd { margin: 0; }
-.help-panel .help-close { margin-top: 30px; font-size: 13px; color: #b9b4a8; }
+.help-cols { columns: 2; column-gap: 48px; margin-top: 22px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, .16); }
+.help-cols section { break-inside: avoid; }
+.help-cols section + section { margin-top: 20px; }
+.help-cols section.col-top { break-before: column; margin-top: 0; }
+@media (max-width: 760px) {
+  .help-panel dl { grid-auto-flow: row; grid-template-rows: none; grid-template-columns: 1fr; }
+  .help-cols { columns: 1; }
+  .help-cols section.col-top { break-before: auto; margin-top: 20px; }
+}
+.help-panel .help-close { margin-top: 22px; font-size: 13px; color: #b9b4a8; }
 dialog h2 { margin: 0 0 8px; font-size: 17px; }
 dialog p { margin: 0 0 12px; color: var(--muted); }
 dialog textarea { width: 100%; height: 220px; font: 12px/1.5 ui-monospace, Menlo, monospace; color: inherit;
@@ -183,6 +197,9 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
 <header class="topbar">
   <div class="titlebar"><strong>{{TITLE}}</strong></div>
   <div class="toolrow">
+    <button class="btn icon" id="back" disabled aria-label="Back to where you were before following a link" title="Back to where you were before following a link (B)">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5.5"/><path d="M11.5 5.5 5 12l6.5 6.5"/></svg>
+    </button>
   <div class="toolbar" id="toolbar" role="toolbar" aria-label="Review tools">
     <div class="group reader" data-group="read" role="group" aria-label="Read aloud" id="reader">
       <button class="grip" aria-label="Move the read aloud group. Drag it, or press the left and right arrow keys." title="Drag to rearrange the toolbar">
@@ -289,28 +306,40 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
 
 <div id="help" hidden role="dialog" aria-modal="true" aria-label="How to comment, and keyboard shortcuts">
   <div class="help-panel">
-    <h2>How to comment</h2>
-    <p>Select text to comment on it. For a figure, table or equation, press the area button and drag a box around it.</p>
     <h2>Keyboard shortcuts</h2>
     <dl>
-      <dt><kbd>R</kbd></dt><dd>Go to the most recent comment</dd>
-      <dt><kbd>L</kbd></dt><dd>Go to the last comment in the document</dd>
-      <dt><kbd>C</kbd></dt><dd>Collapse or expand all comments</dd>
-      <dt><kbd>+</kbd> <kbd>−</kbd></dt><dd>Zoom in, zoom out</dd>
-      <dt><kbd>P</kbd></dt><dd>Read aloud, pause, resume</dd>
-      <dt><kbd>S</kbd></dt><dd>Stop reading</dd>
-      <dt><kbd>[</kbd> <kbd>]</kbd></dt><dd>Read slower, read faster (never below 1×)</dd>
-      <dt><kbd>Alt</kbd> + drag</dt><dd>Box an area without pressing the area button</dd>
-      <dt><kbd>⌘/Ctrl</kbd> <kbd>Enter</kbd></dt><dd>Save the comment you are writing</dd>
-      <dt><kbd>Esc</kbd></dt><dd>Cancel the comment you are writing, or a box you are drawing</dd>
-      <dt><kbd>?</kbd></dt><dd>Show or hide this help</dd>
+      <div><dt><kbd>R</kbd></dt><dd>Go to the most recent comment</dd></div>
+      <div><dt><kbd>L</kbd></dt><dd>Go to the last comment in the document</dd></div>
+      <div><dt><kbd>C</kbd></dt><dd>Collapse or expand all comments</dd></div>
+      <div><dt><kbd>Alt</kbd> + drag</dt><dd>Box an area without the area button</dd></div>
+      <div><dt><kbd>⌘/Ctrl</kbd> <kbd>Enter</kbd></dt><dd>Save the comment you are writing</dd></div>
+      <div><dt><kbd>Esc</kbd></dt><dd>Cancel a comment or a box in progress</dd></div>
+      <div><dt><kbd>+</kbd> <kbd>−</kbd></dt><dd>Zoom in, zoom out</dd></div>
+      <div><dt><kbd>B</kbd></dt><dd>Go back after following a link</dd></div>
+      <div><dt><kbd>P</kbd></dt><dd>Read aloud, pause, resume</dd></div>
+      <div><dt><kbd>S</kbd></dt><dd>Stop reading</dd></div>
+      <div><dt><kbd>[</kbd> <kbd>]</kbd></dt><dd>Read slower, faster (never below 1×)</dd></div>
+      <div><dt><kbd>?</kbd></dt><dd>Show or hide this help</dd></div>
     </dl>
-    <h2>Reading aloud</h2>
-    <p>Press the speaker button in the top bar to have the paper read to you, with the sentence and the word being spoken highlighted. Or right-click anywhere on a page and choose Read aloud from here. The same button pauses and resumes, the turtle button sets the reading speed, and the square button stops. The voice is generated on your computer. The first use downloads it, about 330 MB.</p>
-    <h2>Arranging the toolbar</h2>
-    <p>Each group of buttons in the toolbar has a dotted handle on its left. Drag the handle to move the group, or select the handle and press the left and right arrow keys. The arrangement is remembered.</p>
-    <h2>Moving through the pages</h2>
-    <p>Scroll with the mouse wheel or trackpad, or use the page controls in the top bar: first, previous, next and last page. To jump to a page, type its number in the box and press Enter.</p>
+    <div class="help-cols">
+      <section>
+        <h2>How to comment</h2>
+        <p>Select text to comment on it. For a figure, table or equation, press the area button and drag a box around it.</p>
+      </section>
+      <section>
+        <h2>Reading aloud</h2>
+        <p>Press the speaker button in the top bar to have the paper read to you, with the sentence and the word being spoken highlighted. Or right-click anywhere on a page and choose Read aloud from here. The same button pauses and resumes, the turtle button sets the reading speed, and the square button stops. The voice is generated on your computer. The first use downloads it, about 330 MB.</p>
+      </section>
+      <section class="col-top">
+        <h2>Moving through the pages</h2>
+        <p>Scroll with the mouse wheel or trackpad, or use the page controls in the top bar: first, previous, next and last page. To jump to a page, type its number in the box and press Enter.</p>
+        <p>Links inside the PDF work: click a section number, a citation or a figure reference to go to it, then press the back arrow at the left of the toolbar, or <kbd>B</kbd>, to return. Like a browser's back button, it steps back through the links you followed, one at a time. Web links open in a new tab. Dragging across a link still selects its text.</p>
+      </section>
+      <section>
+        <h2>Arranging the toolbar</h2>
+        <p>Each group of buttons in the toolbar has a dotted handle on its left. Drag the handle to move the group, or select the handle and press the left and right arrow keys. The arrangement is remembered.</p>
+      </section>
+    </div>
     <p class="help-close">Press <kbd>Esc</kbd> to close</p>
   </div>
 </div>
@@ -425,6 +454,7 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
     const rd = document.createElement('div'); rd.className = 'rd-layer';
     p.el.replaceChildren(canvas, hl, rd, tl);
     p.divs = divs;                                      // one span per text item, in the order of the items
+    loadLinks(p);
     paintHighlights(p);
     paintReading(p);
   }
@@ -617,6 +647,7 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
       case 'c': press('#collapse-btn'); break;
       case '+': case '=': press('#zoom-in'); break;
       case '-': case '_': case '−': press('#zoom-out'); break;
+      case 'b': press('#back'); break;
       case 'p': press('#read-play'); break;
       case 's': press('#read-stop'); break;
       case '[': setSpeed(reader.speed - 0.25); e.preventDefault(); break;
@@ -796,7 +827,11 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
     const t = pending;
     create({ kind: 'text', page: t.rects[0].page, rects: t.rects, quote: t.quote });
   });
+  let linkTimer = 0;
+  // any new press cancels a link that is waiting to be followed: the second click of a double-click, a drag, a right-click
+  document.addEventListener('mousedown', () => clearTimeout(linkTimer), true);
   pagesEl.addEventListener('click', (e) => {
+    clearTimeout(linkTimer);
     if (submitted || regionMode || justDragged) return;
     const sel = window.getSelection();
     if (sel && !sel.isCollapsed) return;
@@ -804,6 +839,12 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
     let hit = null;
     if (el) {
       const b = el.getBoundingClientRect();
+      const lk = e.button === 0 && linkAt(pages[+el.dataset.page - 1], (e.clientX - b.left) / b.width, (e.clientY - b.top) / b.height);
+      // wait a moment before following, so that a double-click on a linked word selects the word instead
+      if (lk) {
+        if (e.detail <= 1) linkTimer = setTimeout(() => { const s = window.getSelection(); if (!s || s.isCollapsed) followLink(lk); }, 220);
+        return;
+      }
       hit = commentAt(pages[+el.dataset.page - 1], (e.clientX - b.left) / b.width, (e.clientY - b.top) / b.height);
     }
     if (hit) activate(hit.id, false);
@@ -956,6 +997,111 @@ body.submitted #pop, body.submitted .card-actions, body.submitted #region-btn, b
     requestAnimationFrame(() => { pageTick = false; showCurrentPage(); });
   }, { passive: true });
   showCurrentPage();
+
+  // ---------- links inside the PDF ----------
+  // The text layer stays on top so that selecting text works everywhere, including across a link.
+  // A plain click (no drag, no selection) on a link's rectangle follows it.
+  async function loadLinks(p) {
+    if (p.links) return;
+    p.links = [];
+    let annots = [];
+    try { annots = await p.page.getAnnotations({ intent: 'display' }); } catch (e) { return; }
+    const vp = p.page.getViewport({ scale: 1 });
+    for (const a of annots) {
+      if (a.subtype !== 'Link' || !a.rect || !(a.dest || a.url)) continue;
+      const [x0, y0, x1, y1] = vp.convertToViewportRectangle(a.rect);
+      const r = { x: Math.min(x0, x1) / p.w, y: Math.min(y0, y1) / p.h, w: Math.abs(x1 - x0) / p.w, h: Math.abs(y1 - y0) / p.h };
+      if (r.w <= 0 || r.h <= 0) continue;
+      p.links.push({ r, dest: a.dest || null, url: a.dest ? null : a.url, to: undefined });
+    }
+  }
+  function linkAt(p, fx, fy) {
+    let best = null;                                  // the smallest rectangle wins when links overlap
+    for (const l of p.links || []) {
+      const r = l.r;
+      if (fx >= r.x && fx <= r.x + r.w && fy >= r.y && fy <= r.y + r.h && (!best || r.w * r.h < best.r.w * best.r.h)) best = l;
+    }
+    return best;
+  }
+  // Where an internal link points: { page, y } with y as a fraction of the page height, or null.
+  async function resolveLink(l) {
+    if (l.to !== undefined) return l.to;
+    l.to = null;
+    try {
+      let d = l.dest;
+      if (typeof d === 'string') d = await pdf.getDestination(d);
+      if (!Array.isArray(d) || d[0] == null) return null;
+      const idx = typeof d[0] === 'object' ? await pdf.getPageIndex(d[0]) : d[0];
+      const p = pages[idx];
+      if (!p) return null;
+      const kind = d[1] && d[1].name;
+      let top = null;
+      if (kind === 'XYZ') top = d[3];
+      else if (kind === 'FitH' || kind === 'FitBH') top = d[2];
+      else if (kind === 'FitR') top = d[5];
+      let y = 0;
+      if (typeof top === 'number') y = clamp(p.page.getViewport({ scale: 1 }).convertToViewportPoint(0, top)[1] / p.h, 0, 1);
+      l.to = { page: p.n, y };
+    } catch (e) { /* a broken destination: the link does nothing */ }
+    return l.to;
+  }
+  const backBtn = $('#back'), trail = [];
+  function showBack() {
+    backBtn.disabled = !trail.length;
+    const t = trail[trail.length - 1];
+    backBtn.title = (t ? 'Back to page ' + t.page : 'Back to where you were before following a link') + ' (B)';
+  }
+  const spotY = (p, y) => Math.max(0, p.el.getBoundingClientRect().top + window.scrollY + y * p.el.getBoundingClientRect().height
+    - $('.topbar').getBoundingClientRect().height - 16);
+  const scrollToSpot = (p, y) => window.scrollTo({ top: spotY(p, y) });
+  // Like a browser's back button: every followed link adds the spot it was followed from, and each
+  // press returns to the latest one.
+  const atSpot = (t) => Math.abs(spotY(pages[t.page - 1], t.y) - window.scrollY) < 4;
+  async function followLink(l) {
+    if (l.url) {
+      if (/^(https?:|mailto:)/i.test(l.url)) window.open(l.url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    const to = await resolveLink(l);
+    if (!to) return;
+    // remember the spot being left, as a place on a page, so that it survives zooming
+    const from = pages[currentPage - 1], fb = from.el.getBoundingClientRect();
+    const spot = { page: from.n, y: ($('.topbar').getBoundingClientRect().bottom + 16 - fb.top) / fb.height };
+    trail.push(spot);
+    if (trail.length > 200) trail.shift();
+    scrollToSpot(pages[to.page - 1], to.y);
+    showCurrentPage(); showBack();
+  }
+  backBtn.addEventListener('click', () => {
+    let t = trail.pop();
+    while (t && atSpot(t) && trail.length) t = trail.pop();          // a press always moves, if any remembered spot is elsewhere
+    if (t) { scrollToSpot(pages[t.page - 1], t.y); showCurrentPage(); }
+    showBack();
+  });
+  // Hovering a link shows a pointer, a faint mark on the link, and where it goes.
+  let hoverLink = null, hoverEl = null;
+  function setHover(p, l) {
+    if (l === hoverLink) return;
+    if (hoverEl) { hoverEl.remove(); hoverEl = null; }
+    for (const q of document.querySelectorAll('.page.on-link')) { q.classList.remove('on-link'); q.removeAttribute('title'); }
+    hoverLink = l;
+    if (!l) return;
+    p.el.classList.add('on-link');
+    hoverEl = document.createElement('div'); hoverEl.className = 'lk-hover';
+    hoverEl.style.left = l.r.x * 100 + '%'; hoverEl.style.top = l.r.y * 100 + '%';
+    hoverEl.style.width = l.r.w * 100 + '%'; hoverEl.style.height = l.r.h * 100 + '%';
+    p.el.appendChild(hoverEl);
+    if (l.url) p.el.title = l.url;
+    else resolveLink(l).then((to) => { if (to && hoverLink === l) p.el.title = 'Go to page ' + to.page; });
+  }
+  pagesEl.addEventListener('mousemove', (e) => {
+    const el = e.buttons || regionMode || submitted ? null : e.target.closest('.page');
+    if (!el) { setHover(null, null); return; }
+    const p = pages[+el.dataset.page - 1], b = el.getBoundingClientRect();
+    setHover(p, linkAt(p, (e.clientX - b.left) / b.width, (e.clientY - b.top) / b.height));
+  });
+  pagesEl.addEventListener('mouseleave', () => setHover(null, null));
+  window.phrLinks = { list: (n) => pages[n - 1].links || [], resolve: resolveLink, trail };
 
   // ---------- read aloud ----------
   // Speech comes from Kokoro-82M (voice am_fenrir), run in this browser by kokoro-js inside a worker:

@@ -2,7 +2,7 @@
 
 A plugin that lets a person review a PDF in the browser and hand their comments back to the agent that asked.
 
-![The review page: a toolbar with read-aloud, page, zoom and comment controls above a PDF page. A figure is boxed and several sentences carry comments, shown in the margin. One sentence is being read aloud and is highlighted, with the current word marked.](docs/screenshot.png)
+![The review page: a toolbar with a back arrow, then read-aloud, page, zoom and comment controls, above a PDF page. A figure is boxed and several sentences carry comments, shown in the margin. One sentence is being read aloud and is highlighted, with the current word marked.](docs/screenshot.png)
 
 The review page shows the PDF itself, drawn by PDF.js. The reviewer selects text, or presses the area button and drags a box around a figure, table or equation, and writes a comment in the margin. Comments can be edited and deleted. Pressing **Submit comments** sends them to the agent:
 
@@ -124,6 +124,8 @@ Copy the `skills/pdf-human-review/` folder into the agent's skills location agai
 ## Use
 
 `/pdf-human-review <file.pdf>` starts a review. Saying "I want to do a human review of this PDF" also works, and the agent asks before starting. One PDF is reviewed at a time. There is nothing to set up.
+
+Links inside the PDF work on the review page. Clicking a section number, a citation or a figure reference goes to its target, and the back arrow at the left of the toolbar returns you (or press `B`). It works like a browser's back button: it is gray until you follow a link, and it steps back through the links you followed, one at a time. Web links open in a new tab. Selecting text is unaffected: dragging across a link, or double-clicking a linked word, selects it as usual.
 
 ## Reading aloud
 
